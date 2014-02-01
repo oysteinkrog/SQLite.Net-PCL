@@ -17,6 +17,8 @@ namespace SQLite.Net.Tests
 
             public int Order { get; set; }
 
+            public string Content { get; set; }
+
             public override string ToString()
             {
                 return string.Format("[TestObj: Id={0}, Order={1}]", Id, Order);
@@ -62,5 +64,6 @@ namespace SQLite.Net.Tests
             Assert.AreEqual(n - 5, s5.Count);
             Assert.AreEqual(6, s5[0].Order);
         }
+
     }
 }

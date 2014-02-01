@@ -8,9 +8,9 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyTitle("SQLite.Net")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Øystein Krog")]
+[assembly: AssemblyCompany("Øystein Krog, Benjamin Mayrargue")]
 [assembly: AssemblyProduct("SQLite.Net")]
-[assembly: AssemblyCopyright("Copyright © Øystein Krog, Krueger Systems Inc.")]
+[assembly: AssemblyCopyright("Copyright © Øystein Krog, Krueger Systems Inc., Benjamin Mayrargue Vapolia SARL")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

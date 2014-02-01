@@ -24,6 +24,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using SQLite.Net.Interop;
 
 namespace SQLite.Net.Async
 {
@@ -58,47 +59,47 @@ namespace SQLite.Net.Async
             return _sqliteConnectionFunc();
         }
 
-        public Task<CreateTablesResult> CreateTableAsync<T>()
+        public Task<CreateTablesResult> CreateTableAsync<T>(CreateFlags createFlags = CreateFlags.None)
             where T : new()
         {
-            return CreateTablesAsync(typeof (T));
+            return CreateTablesAsync(createFlags, typeof (T));
         }
 
-        public Task<CreateTablesResult> CreateTablesAsync<T, T2>()
+        public Task<CreateTablesResult> CreateTablesAsync<T, T2>(CreateFlags createFlags = CreateFlags.None)
             where T : new()
             where T2 : new()
         {
-            return CreateTablesAsync(typeof (T), typeof (T2));
+            return CreateTablesAsync(createFlags, typeof (T), typeof (T2));
         }
 
-        public Task<CreateTablesResult> CreateTablesAsync<T, T2, T3>()
+        public Task<CreateTablesResult> CreateTablesAsync<T, T2, T3>(CreateFlags createFlags = CreateFlags.None)
             where T : new()
             where T2 : new()
             where T3 : new()
         {
-            return CreateTablesAsync(typeof (T), typeof (T2), typeof (T3));
+            return CreateTablesAsync(createFlags, typeof (T), typeof (T2), typeof (T3));
         }
 
-        public Task<CreateTablesResult> CreateTablesAsync<T, T2, T3, T4>()
+        public Task<CreateTablesResult> CreateTablesAsync<T, T2, T3, T4>(CreateFlags createFlags = CreateFlags.None)
             where T : new()
             where T2 : new()
             where T3 : new()
             where T4 : new()
         {
-            return CreateTablesAsync(typeof (T), typeof (T2), typeof (T3), typeof (T4));
+            return CreateTablesAsync(createFlags, typeof (T), typeof (T2), typeof (T3), typeof (T4));
         }
 
-        public Task<CreateTablesResult> CreateTablesAsync<T, T2, T3, T4, T5>()
+        public Task<CreateTablesResult> CreateTablesAsync<T, T2, T3, T4, T5>(CreateFlags createFlags = CreateFlags.None)
             where T : new()
             where T2 : new()
             where T3 : new()
             where T4 : new()
             where T5 : new()
         {
-            return CreateTablesAsync(typeof (T), typeof (T2), typeof (T3), typeof (T4), typeof (T5));
+            return CreateTablesAsync(createFlags, typeof (T), typeof (T2), typeof (T3), typeof (T4), typeof (T5));
         }
 
-        public Task<CreateTablesResult> CreateTablesAsync(params Type[] types)
+        public Task<CreateTablesResult> CreateTablesAsync(CreateFlags createFlags = CreateFlags.None, params Type[] types)
         {
             if (types == null)
             {
@@ -112,7 +113,7 @@ namespace SQLite.Net.Async
                 {
                     foreach (Type type in types)
                     {
-                        int aResult = conn.CreateTable(type);
+                        int aResult = conn.CreateTable(type, createFlags);
                         result.Results[type] = aResult;
                     }
                 }
@@ -310,6 +311,54 @@ namespace SQLite.Net.Async
                 using (conn.Lock())
                 {
                     return conn.InsertAll(items);
+                }
+            });
+        }
+
+        public Task<int> InsertOrReplaceAsync(object item)
+        {
+            return Task.Factory.StartNew(() =>
+            {
+                SQLiteConnectionWithLock conn = GetConnection();
+                using (conn.Lock())
+                {
+                    return conn.InsertOrReplace(item);
+                }
+            });
+        }
+
+        public Task<int> InsertOrIgnoreAsync(object item)
+        {
+            return Task.Factory.StartNew(() =>
+            {
+                SQLiteConnectionWithLock conn = GetConnection();
+                using (conn.Lock())
+                {
+                    return conn.InsertOrIgnore(item);
+                }
+            });
+        }
+
+        public Task<int> InsertOrReplaceAllAsync(IEnumerable items)
+        {
+            return Task.Factory.StartNew(() =>
+            {
+                var conn = GetConnection();
+                using (conn.Lock())
+                {
+                    return conn.InsertOrReplaceAll(items);
+                }
+            });
+        }
+
+        public Task<int> InsertOrIgnoreAllAsync(IEnumerable items)
+        {
+            return Task.Factory.StartNew(() =>
+            {
+                var conn = GetConnection();
+                using (conn.Lock())
+                {
+                    return conn.InsertOrIgnoreAll(items);
                 }
             });
         }

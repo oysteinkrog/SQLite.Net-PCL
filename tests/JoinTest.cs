@@ -68,6 +68,7 @@ namespace SQLite.Net.Tests
         {
         }
 
+        //Not supported by orm
         //[Test]
         public void JoinThenWhere()
         {
@@ -86,6 +87,7 @@ namespace SQLite.Net.Tests
             Assert.AreEqual(2, r.Count);
         }
 
+        //Not supported by orm
         //[Test]
         public void WhereThenJoin()
         {

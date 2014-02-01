@@ -1,7 +1,9 @@
 //
 // Copyright (c) 2012 Krueger Systems, Inc.
 // Copyright (c) 2013 Øystein Krog (oystein.krog@gmail.com)
-// 
+// Copyright (c) 2014 Benjamin Mayrargue (softlion@softlion.com)
+//   - Support for multi columns promary keys
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -169,19 +171,6 @@ namespace SQLite.Net
             get { return _tables != null ? _tables.Values : Enumerable.Empty<TableMapping>(); }
         }
 
-        /// <summary>
-        ///     Whether <see cref="BeginTransaction" /> has been called and the database is waiting for a <see cref="Commit" />.
-        /// </summary>
-        public bool IsInTransaction
-        {
-            get { return _transactionDepth > 0; }
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
 
         public void EnableLoadExtension(int onoff)
         {
@@ -290,14 +279,29 @@ namespace SQLite.Net
                 map = GetMapping(ty, createFlags);
                 _tables.Add(ty.FullName, map);
             }
-            string query = "create table if not exists \"" + map.TableName + "\"(\n";
 
-            IEnumerable<string> decls = map.Columns.Select(p => Orm.SqlDecl(p, StoreDateTimeAsTicks));
-            string decl = string.Join(",\n", decls.ToArray());
-            query += decl;
-            query += ")";
+            var sbQuery = new StringBuilder("create table if not exists \"").Append(map.TableName).Append("\"( \n");
+            map.Columns.Aggregate(sbQuery, (sb, column) => sb.Append(Orm.SqlDecl(column, StoreDateTimeAsTicks)).Append(",\n"));
 
-            int count = Execute(query);
+            var pks = (from c in map.Columns where c.IsPK || c.IsAutoInc select c).ToList(); //autoincrement must be a primary key
+            var autoincs = pks.Count(p => p.IsAutoInc);
+            if (autoincs > 1)
+                throw new Exception("Can not have a multiple primary key with a single autoincrement");
+            if (pks.Count != 0 && autoincs == 0)
+            {
+                //If autoincs == 1, a 'primary key' constraint has already been created
+                //, PRIMARY KEY (A_ID, B_ID)
+                sbQuery.Append("primary key (");
+                pks.Aggregate(sbQuery, (sb, c) => sb.Append(c.Name).Append(','));
+                sbQuery.Remove(sbQuery.Length - 1, 1).Append(')');
+            }
+            else
+            {
+                sbQuery.Remove(sbQuery.Length - 2, 2);
+            }
+
+            sbQuery.Append(")");
+            var count = Execute(sbQuery.ToString());
 
             if (count == 0)
             {
@@ -307,11 +311,11 @@ namespace SQLite.Net
             }
 
             var indexes = new Dictionary<string, IndexInfo>();
-            foreach (TableMapping.Column c in map.Columns)
+            foreach (var c in map.Columns)
             {
-                foreach (IndexedAttribute i in c.Indices)
+                foreach (var i in c.Indices)
                 {
-                    string iname = i.Name ?? map.TableName + "_" + c.Name;
+                    var iname = i.Name ?? map.TableName + "_" + c.Name;
                     IndexInfo iinfo;
                     if (!indexes.TryGetValue(iname, out iinfo))
                     {
@@ -339,15 +343,28 @@ namespace SQLite.Net
                 }
             }
 
-            foreach (string indexName in indexes.Keys)
+            foreach (var indexName in indexes.Keys)
             {
-                IndexInfo index = indexes[indexName];
-                string columns = String.Join("\",\"",
-                    index.Columns.OrderBy(i => i.Order).Select(i => i.ColumnName).ToArray());
+                var index = indexes[indexName];
+                var columns = index.Columns.OrderBy(i => i.Order).Select(i => i.ColumnName);
                 count += CreateIndex(indexName, index.TableName, columns, index.Unique);
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// Creates an index for the specified table and columns.
+        /// </summary>
+        /// <param name="indexName">Name of the index to create</param>
+        /// <param name="tableName">Name of the database table</param>
+        /// <param name="columnNames">An array of column names to index</param>
+        /// <param name="unique">Whether the index should be unique</param>
+        public int CreateIndex(string indexName, string tableName, IEnumerable<string> columnNames, bool unique = false)
+        {
+            const string sqlFormat = "create {2} index if not exists \"{3}\" on \"{0}\"(\"{1}\")";
+            var sql = String.Format(sqlFormat, tableName, String.Join("\", \"", columnNames), unique ? "unique" : null, indexName);
+            return Execute(sql);
         }
 
         /// <summary>
@@ -357,6 +374,7 @@ namespace SQLite.Net
         /// <param name="tableName">Name of the database table</param>
         /// <param name="columnName">Name of the column to index</param>
         /// <param name="unique">Whether the index should be unique</param>
+        [Obsolete("use CreateIndex with the string[] columnNames parameter instead")]
         public int CreateIndex(string indexName, string tableName, string columnName, bool unique = false)
         {
             const string sqlFormat = "create {2} index if not exists \"{3}\" on \"{0}\"(\"{1}\")";
@@ -372,8 +390,7 @@ namespace SQLite.Net
         /// <param name="unique">Whether the index should be unique</param>
         public int CreateIndex(string tableName, string columnName, bool unique = false)
         {
-            return CreateIndex(string.Concat(tableName, "_", columnName.Replace("\",\"", "_")), tableName, columnName,
-                unique);
+            return CreateIndex(string.Concat(tableName, "_", columnName.Replace("\",\"", "_")), tableName, new[] { columnName }, unique);
         }
 
         /// <summary>
@@ -554,6 +571,12 @@ namespace SQLite.Net
             return r;
         }
 
+        public IEnumerable<T> ExecuteSimpleQuery<T>(string query, params object[] args)
+        {
+            var cmd = CreateCommand(query, args);
+            return cmd.ExecuteSimpleQuery<T>();
+        }
+
         /// <summary>
         ///     Creates a SQLiteCommand given the command text (SQL) with arguments. Place a '?'
         ///     in the command text for each of the arguments and then executes that command.
@@ -682,6 +705,27 @@ namespace SQLite.Net
             return Query<T>(map.GetByPrimaryKeySql, pk).First();
         }
 
+         /// <summary>
+        ///     Attempts to retrieve an object with the given primary keys from the table
+        ///     associated with the specified type. Use of this method requires that
+        ///     the given type have a designated PrimaryKey (using the PrimaryKeyAttribute).
+        /// </summary>
+        /// <param name="pks">
+        ///     The primary keys.
+        /// </param>
+        /// <returns>
+        ///     The object with the given primary key. Throws a not found exception
+        ///     if the object is not found.
+        /// </returns>
+        public T Get<T>(params object[] pks) where T : new()
+        {
+            if(pks == null || pks.Length == 0)
+                throw new ArgumentNullException("pks");
+
+            TableMapping map = GetMapping(typeof(T));
+            return Query<T>(map.GetByPrimaryKeysSqlForPartialKeys(pks.Count()), pks).First();
+        }
+
         /// <summary>
         ///     Attempts to retrieve the first object that matches the predicate from the table
         ///     associated with the specified type.
@@ -721,6 +765,27 @@ namespace SQLite.Net
         ///     associated with the specified type. Use of this method requires that
         ///     the given type have a designated PrimaryKey (using the PrimaryKeyAttribute).
         /// </summary>
+        /// <param name="pks">
+        ///     The primary keys.
+        /// </param>
+        /// <returns>
+        ///     The object with the given primary key or null
+        ///     if the object is not found.
+        /// </returns>
+        public T Find<T>(params object[] pks) where T : new()
+        {
+            if(pks == null || pks.Length == 0)
+                throw new ArgumentNullException("pks");
+
+            TableMapping map = GetMapping(typeof(T));
+            return Query<T>(map.GetByPrimaryKeysSqlForPartialKeys(pks.Length), pks).FirstOrDefault();
+        }
+
+        /// <summary>
+        ///     Attempts to retrieve an object with the given primary key from the table
+        ///     associated with the specified type. Use of this method requires that
+        ///     the given type have a designated PrimaryKey (using the PrimaryKeyAttribute).
+        /// </summary>
         /// <param name="pk">
         ///     The primary key.
         /// </param>
@@ -737,6 +802,28 @@ namespace SQLite.Net
         }
 
         /// <summary>
+        ///     Attempts to retrieve an object with the given primary key from the table
+        ///     associated with the specified type. Use of this method requires that
+        ///     the given type have a designated PrimaryKey (using the PrimaryKeyAttribute).
+        /// </summary>
+        /// <param name="pks">
+        ///     The primary keys.
+        /// </param>
+        /// <param name="map">
+        ///     The TableMapping used to identify the object type.
+        /// </param>
+        /// <returns>
+        ///     The object with the given primary key or null
+        ///     if the object is not found.
+        /// </returns>
+        public object Find(TableMapping map, params object[] pks)
+        {
+            if(pks == null || pks.Length == 0)
+                throw new ArgumentNullException("pks");
+            return Query(map, map.GetByPrimaryKeysSqlForPartialKeys(pks.Length), pks).FirstOrDefault();
+        }
+
+        /// <summary>
         ///     Attempts to retrieve the first object that matches the predicate from the table
         ///     associated with the specified type.
         /// </summary>
@@ -750,6 +837,14 @@ namespace SQLite.Net
         public T Find<T>(Expression<Func<T, bool>> predicate) where T : new()
         {
             return Table<T>().Where(predicate).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Whether <see cref="BeginTransaction"/> has been called and the database is waiting for a <see cref="Commit"/>.
+        /// </summary>
+        public bool IsInTransaction
+        {
+            get { return _transactionDepth > 0; }
         }
 
         /// <summary>
@@ -1099,6 +1194,42 @@ namespace SQLite.Net
             return Insert(obj, "OR REPLACE", obj.GetType());
         }
 
+        public int InsertOrIgnore(object obj)
+        {
+            return obj == null ? 0 : Insert(obj, "OR IGNORE", obj.GetType());
+        }
+
+        public int InsertOrReplaceAll(IEnumerable objects)
+        {
+            var c = 0;
+            RunInTransaction(() =>
+            {
+                foreach (var r in objects)
+                {
+                    c += InsertOrReplace(r);
+                }
+            });
+            return c;
+        }
+
+        public int InsertOrIgnoreAll(IEnumerable objects)
+        {
+            var c = 0;
+            RunInTransaction(() =>
+            {
+                foreach (var r in objects)
+                {
+                    c += InsertOrIgnore(r);
+                }
+            });
+            return c;
+        }
+
+        public int InsertOrIgnore(object obj, Type objType)
+        {
+            return Insert(obj, "OR IGNORE", objType);
+        }
+
         /// <summary>
         ///     Inserts the given object and retrieves its
         ///     auto incremented primary key if it has one.
@@ -1186,9 +1317,9 @@ namespace SQLite.Net
 
             TableMapping map = GetMapping(objType);
 
-            if (map.PK != null && map.PK.IsAutoGuid)
+            foreach (var pk in map.PKs.Where(pk => pk.IsAutoGuid))
             {
-                PropertyInfo prop = objType.GetProperty(map.PK.PropertyName);
+                PropertyInfo prop = objType.GetProperty(pk.PropertyName);
                 if (prop != null)
                 {
                     if (prop.GetValue(obj, null).Equals(Guid.Empty))
@@ -1274,8 +1405,7 @@ namespace SQLite.Net
                 select p;
             IEnumerable<object> vals = from c in cols
                 select c.GetValue(obj);
-            var ps = new List<object>(vals);
-            ps.Add(pk.GetValue(obj));
+            var ps = new List<object>(vals){pk.GetValue(obj)};
             string q = string.Format("update \"{0}\" set {1} where {2} = ? ", map.TableName,
                 string.Join(",", (from c in cols
                     select "\"" + c.Name + "\" = ? ").ToArray()), pk.Name);
@@ -1316,20 +1446,63 @@ namespace SQLite.Net
         public int Delete(object objectToDelete)
         {
             TableMapping map = GetMapping(objectToDelete.GetType());
-            TableMapping.Column pk = map.PK;
-            if (pk == null)
+            if (map.PK == null)
             {
                 throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
             }
-            string q = string.Format("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pk.Name);
-            return Execute(q, pk.GetValue(objectToDelete));
+            string q = string.Format("delete from \"{0}\" where {1}", map.TableName, map.PkWhereSql);
+            return Execute(q, map.PKs.Select(pk => pk.GetValue(objectToDelete)).ToArray());
+        }
+
+        /// <summary>
+        ///     Deletes the given objects from the database using their primary keys.
+        /// </summary>
+        /// <param name="objectToDelete">
+        ///     The object to delete. It must have a primary key designated using the PrimaryKeyAttribute.
+        /// </param>
+        /// <returns>
+        ///     The number of rows deleted.
+        /// </returns>
+        public int Delete<T>(IEnumerable<T> objects)
+        {
+            if (objects == null)
+                return 0;
+
+            var map = GetMapping(typeof (T));
+            if (map.PK == null)
+            {
+                throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
+            }
+            var obj = objects.ToList();
+
+            if (map.PKs.Count > 1)
+            {
+                string q = string.Format("delete from \"{0}\" where {1}", map.TableName, map.PkWhereSql);
+                return obj.Sum(objectToDelete => Execute(q, map.PKs.Select(pk => pk.GetValue(objectToDelete))));
+            }
+            else
+            {
+                //Optimization: delete all objects in one request.
+                //Won't work if there are too much objects, but who cares ...
+                var pk = map.PK;
+                var keyObjects = obj.Select(o => pk.GetValue(o)).ToArray();
+                if (keyObjects.Length > 0)
+                {
+                    var keyListParams = String.Join(",", Enumerable.Repeat('?', obj.Count));
+                    var q = string.Format("delete from \"{0}\" where \"{1}\" in ({2})", map.TableName, pk.Name, keyListParams);
+                    return Execute(q, keyObjects);
+                }
+            }
+
+            return 0;
         }
 
         /// <summary>
         ///     Deletes the object with the specified primary key.
         /// </summary>
-        /// <param name="primaryKey">
+        /// <param name="primaryKeys">
         ///     The primary key of the object to delete.
+        ///     In case of a multiple primary key, you can set all primary key values in table order
         /// </param>
         /// <returns>
         ///     The number of objects deleted.
@@ -1337,16 +1510,18 @@ namespace SQLite.Net
         /// <typeparam name='T'>
         ///     The type of object.
         /// </typeparam>
-        public int Delete<T>(object primaryKey)
+        public int Delete<T>(params object[] primaryKeys)
         {
-            TableMapping map = GetMapping(typeof (T));
-            TableMapping.Column pk = map.PK;
-            if (pk == null)
-            {
+            if (primaryKeys == null || primaryKeys.Length == 0)
+                throw new ArgumentNullException("primaryKeys"); ;
+            var map = GetMapping(typeof(T));
+            if (map.PK == null)
                 throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
-            }
-            string q = string.Format("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pk.Name);
-            return Execute(q, primaryKey);
+            if (primaryKeys.Length > map.PKs.Count)
+                throw new ArgumentException("primaryKeys array length can not be greater than the number of primary keys");
+
+            var q = string.Format("delete from \"{0}\" where {1}", map.TableName, map.PkWhereSqlForPartialKeys(primaryKeys.Length));
+            return Execute(q, primaryKeys);
         }
 
         /// <summary>
@@ -1372,9 +1547,16 @@ namespace SQLite.Net
             Dispose(false);
         }
 
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
-            Close();
+            if (disposing)
+                Close();
         }
 
         public void Close()
@@ -1415,7 +1597,7 @@ namespace SQLite.Net
 //			[Column ("type")]
 //			public string ColumnType { get; set; }
 
-//			public int notnull { get; set; }
+			public int NotNull { get; set; }
 
 //			public string dflt_value { get; set; }
 

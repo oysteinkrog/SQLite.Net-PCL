@@ -1,6 +1,10 @@
 //
-// Copyright (c) 2012 Krueger Systems, Inc.
+// Copyright (c) 2009-2012 Krueger Systems, Inc.
 // Copyright (c) 2013 Øystein Krog (oystein.krog@gmail.com)
+// Copyright (c) 2014 Benjamin Mayrargue (softlion@softlion.com)
+//   Fix for support of multiple primary keys
+//   Support new types: TimeSpan, DateTimeOffset, XElement
+//   (breaking change) Fix i18n string support: stored as i18n string (nvarchar) instead of language dependant string (varchar)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Xml.Linq;
 using SQLite.Net.Attributes;
 
 namespace SQLite.Net
@@ -37,33 +42,20 @@ namespace SQLite.Net
 
         public static string SqlDecl(TableMapping.Column p, bool storeDateTimeAsTicks)
         {
-            string decl = "\"" + p.Name + "\" " + SqlType(p, storeDateTimeAsTicks) + " ";
-
-            if (p.IsPK)
-            {
-                decl += "primary key ";
-            }
-            if (p.IsAutoInc)
-            {
-                decl += "autoincrement ";
-            }
-            if (!p.IsNullable)
-            {
-                decl += "not null ";
-            }
-            if (!string.IsNullOrEmpty(p.Collation))
-            {
-                decl += "collate " + p.Collation + " ";
-            }
-
-            return decl;
+            //http://www.sqlite.org/lang_createtable.html
+            return String.Format("\"{0}\" {1} {2} {3} {4} ",
+                p.Name,
+                SqlType(p, storeDateTimeAsTicks),
+                p.IsAutoInc ? "primary key autoincrement" : null, //autoincrement can not be set with a multiple primary key
+                !p.IsNullable ? "not null" : null,
+                !String.IsNullOrEmpty(p.Collation) ? "collate " + p.Collation : null
+                );
         }
 
         public static string SqlType(TableMapping.Column p, bool storeDateTimeAsTicks)
         {
-            Type clrType = p.ColumnType;
-            if (clrType == typeof (Boolean) || clrType == typeof (Byte) || clrType == typeof (UInt16) ||
-                clrType == typeof (SByte) || clrType == typeof (Int16) || clrType == typeof (Int32))
+            var clrType = p.ColumnType;
+            if (clrType == typeof(Boolean) || clrType == typeof(Byte) || clrType == typeof(UInt16) || clrType == typeof(SByte) || clrType == typeof(Int16) || clrType == typeof(Int32))
             {
                 return "integer";
             }
@@ -75,10 +67,24 @@ namespace SQLite.Net
             {
                 return "float";
             }
+            if (clrType == typeof(XElement))
+            {
+                return "nvarchar"; //SQLite ignores the length //See http://www.sqlite.org/datatype3.html
+            }
             if (clrType == typeof (String))
             {
-                int len = p.MaxStringLength;
-                return "varchar(" + len + ")";
+                var len = p.MaxStringLength;
+                if(len.HasValue)
+                    return "nvarchar(" + len + ")";
+                return "nvarchar";
+            }
+            if (clrType == typeof(DateTimeOffset))
+            {
+                return "varchar";
+            }
+            if (clrType == typeof(TimeSpan))
+            {
+                return "bigint";
             }
             if (clrType == typeof (DateTime))
             {
@@ -96,6 +102,7 @@ namespace SQLite.Net
             {
                 return "varchar(36)";
             }
+                
             throw new NotSupportedException("Don't know about " + clrType);
         }
 
@@ -127,14 +134,14 @@ namespace SQLite.Net
             return attrs.Cast<IndexedAttribute>();
         }
 
-        public static int MaxStringLength(PropertyInfo p)
+        public static int? MaxStringLength(PropertyInfo p)
         {
             object[] attrs = p.GetCustomAttributes(typeof (MaxLengthAttribute), true);
             if (attrs.Length > 0)
             {
                 return ((MaxLengthAttribute) attrs[0]).Value;
             }
-            return DefaultMaxStringLength;
+            return null; //DefaultMaxStringLength;
         }
     }
 }

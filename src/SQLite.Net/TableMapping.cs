@@ -24,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using SQLite.Net.Attributes;
 using SQLite.Net.Interop;
 
@@ -69,7 +70,7 @@ namespace SQLite.Net
                 }
                 if (c.IsPK)
                 {
-                    PK = c;
+                    PKs.Add(c);
                 }
             }
 
@@ -78,13 +79,29 @@ namespace SQLite.Net
             if (PK != null)
             {
                 GetByPrimaryKeySql = string.Format("select * from \"{0}\" where \"{1}\" = ?", TableName, PK.Name);
+                PkWhereSql = PKs.Aggregate(new StringBuilder(), (sb, pk) => sb.AppendFormat(" \"{0}\" = ? and", pk.Name), sb => sb.Remove(sb.Length - 3, 3).ToString());
+                GetByPrimaryKeysSql = String.Format("select * from \"{0}\" where {1}", TableName, PkWhereSql);
             }
             else
             {
                 // People should not be calling Get/Find without a PK
-                GetByPrimaryKeySql = string.Format("select * from \"{0}\" limit 1", TableName);
+                GetByPrimaryKeysSql = GetByPrimaryKeySql = string.Format("select * from \"{0}\" limit 1", TableName);
             }
         }
+
+        public string PkWhereSqlForPartialKeys(int numberOfKeys)
+        {
+            if (numberOfKeys == PKs.Count)
+                return PkWhereSql;
+
+            return PKs.Take(numberOfKeys).Aggregate(new StringBuilder(), (sb, pk) => sb.AppendFormat(" \"{0}\" = ? and", pk.Name), sb => sb.Remove(sb.Length - 3, 3).ToString());
+        }
+
+        public string GetByPrimaryKeysSqlForPartialKeys(int numberOfKeys)
+        {
+            return String.Format("select * from \"{0}\" where {1}", TableName, PkWhereSqlForPartialKeys(numberOfKeys));
+        }
+
 
         public Type MappedType { get; private set; }
 
@@ -92,9 +109,12 @@ namespace SQLite.Net
 
         public Column[] Columns { get; private set; }
 
-        public Column PK { get; private set; }
+        public Column PK { get { return PKs.FirstOrDefault(); } }
+        public readonly List<Column> PKs = new List<Column>();
 
         public string GetByPrimaryKeySql { get; private set; }
+        public string GetByPrimaryKeysSql { get; private set; }
+        public string PkWhereSql { get; private set; }
 
         public bool HasAutoIncPK { get; private set; }
 
@@ -200,6 +220,10 @@ namespace SQLite.Net
         {
             private readonly PropertyInfo _prop;
 
+            internal Column()
+            {
+            }
+
             public Column(PropertyInfo prop, CreateFlags createFlags = CreateFlags.None)
             {
                 var colAttr =
@@ -240,7 +264,7 @@ namespace SQLite.Net
                 get { return _prop.Name; }
             }
 
-            public Type ColumnType { get; private set; }
+            public Type ColumnType { get; internal set; }
 
             public string Collation { get; private set; }
 
@@ -253,7 +277,7 @@ namespace SQLite.Net
 
             public bool IsNullable { get; private set; }
 
-            public int MaxStringLength { get; private set; }
+            public int? MaxStringLength { get; private set; }
 
             /// <summary>
             ///     Set column value.

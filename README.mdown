@@ -4,6 +4,32 @@ This is a fork of the original sqlite-net library (https://github.com/praeclarum
 
 The project will avoid the use of #if-based conditional code and use platform-specific code injection instead.
 
+# New Features
+
+Multiple primary key support
+Ex: 
+
+    public class PrivacyGroupItem
+    {
+		[PrimaryKey]
+		public int GroupId {get;set;}
+
+		[PrimaryKey]
+		public int ContactId {get;set;}
+    }
+
+    db.Delete<PrivacyGroupItem>(groupId, contactId);
+
+
+Projections now have the expected result type
+Ex: `IEnumerable<int> ids = from pgi in db.Table<PrivacyGroupItem>() where pgi.PrivacyGroupId == groupId select pgi.ContactId;`
+
+New method to query simple types (ie: string, ...) as Query<T> can query only complex types (ie: T must be a class/stuct with a default constructor)
+Signature: `IEnumerable<T> ExecuteSimpleQuery<T>(string query, params object[] args)`
+Usage: `ExecuteSimpleQuery<string>("select 'drop table ' || name || ';' from sqlite_master where type = 'table'")`
+
+
+
 # API Changes
 
 As part of the cleanup there are now some API changes.

@@ -53,6 +53,7 @@
     <Compile Include="CreateTableTest.cs" />
     <Compile Include="GuidTests.cs" />
     <Compile Include="CreateTableImplicitTest.cs" />
+    <Compile Include="SelectTest.cs" />
     <Compile Include="SkipTest.cs" />
     <Compile Include="CollateTest.cs" />
     <Compile Include="ContainsTest.cs" />
