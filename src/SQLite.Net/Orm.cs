@@ -88,13 +88,17 @@ namespace SQLite.Net
             {
                 return "integer";
             }
-            if (clrType == typeof (byte[]))
-            {
-                return "blob";
-            }
             if (clrType == typeof (Guid))
             {
                 return "varchar(36)";
+            }
+            if (clrType == typeof(byte[]))
+            {
+                return "blob";
+            }
+            if (clrType.IsClass && !clrType.IsGenericParameter)
+            {
+                return "blob";
             }
             throw new NotSupportedException("Don't know about " + clrType);
         }
