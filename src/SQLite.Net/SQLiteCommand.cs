@@ -291,6 +291,11 @@ namespace SQLite.Net
                 {
                     isqLite3Api.BindText16(stmt, index, ((Guid) value).ToString(), 72, NegativePointer);
                 }
+                else if (Serializer.Instance != null && Serializer.Instance.CanDeserialize(value.GetType()))
+                {
+                    var bytes = Serializer.Instance.Serialize(value);
+                    isqLite3Api.BindBlob(stmt, index, bytes, bytes.Length, NegativePointer);
+                }
                 else
                 {
                     throw new NotSupportedException("Cannot store type: " + value.GetType());
@@ -373,6 +378,11 @@ namespace SQLite.Net
             {
                 string text = _sqlitePlatform.SQLiteApi.ColumnText16(stmt, index);
                 return new Guid(text);
+            }
+            if (Serializer.Instance != null && Serializer.Instance.CanDeserialize(clrType))
+            {
+                var bytes = _sqlitePlatform.SQLiteApi.ColumnByteArray(stmt, index);
+                return Serializer.Instance.Deserialize(bytes, clrType);
             }
             throw new NotSupportedException("Don't know how to read " + clrType);
         }
