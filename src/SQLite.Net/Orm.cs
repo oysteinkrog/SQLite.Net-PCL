@@ -96,7 +96,7 @@ namespace SQLite.Net
             {
                 return "blob";
             }
-            if (clrType.IsClass && !clrType.IsGenericParameter)
+            if (Serializer.Instance != null && Serializer.Instance.CanDeserialize(clrType))
             {
                 return "blob";
             }
