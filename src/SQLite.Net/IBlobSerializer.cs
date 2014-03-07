@@ -38,9 +38,4 @@ namespace SQLite.Net
 
         bool CanDeserialize(Type type);
     }
-
-    public static class Serializer
-    {
-        public static IBlobSerializer Instance { get; set; }
-    }
 }
