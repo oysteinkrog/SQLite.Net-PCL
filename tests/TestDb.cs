@@ -24,7 +24,7 @@ namespace SQLite.Net.Tests
         public DateTime PlacedTime { get; set; }
     }
 
-    public class OrderHistory
+    public partial class OrderHistory
     {
         [AutoIncrement, PrimaryKey]
         public int Id { get; set; }
@@ -34,7 +34,7 @@ namespace SQLite.Net.Tests
         public string Comment { get; set; }
     }
 
-    public class OrderLine
+    public partial class OrderLine
     {
         [AutoIncrement, PrimaryKey]
         public int Id { get; set; }

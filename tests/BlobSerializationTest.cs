@@ -47,8 +47,8 @@ namespace SQLite.Net.Tests
             public ComplexOrder()
             {
                 PlacedTime = DateTime.UtcNow;
-                History = new List<OrderHistory>();
-                Lines = new List<OrderLine>();
+                History = new List<ComplexHistory>();
+                Lines = new List<ComplexLine>();
             }
 
             [AutoIncrement, PrimaryKey]
@@ -56,9 +56,9 @@ namespace SQLite.Net.Tests
 
             public DateTime PlacedTime { get; set; }
 
-            public List<OrderHistory> History { get; set; }
+            public List<ComplexHistory> History { get; set; }
 
-            public List<OrderLine> Lines { get; set; }
+            public List<ComplexLine> Lines { get; set; }
 
             public override bool Equals(object obj)
             {
@@ -68,7 +68,7 @@ namespace SQLite.Net.Tests
             public override int GetHashCode()
             {
                 return this.Id.GetHashCode() ^
-                    this.PlacedTime.GetHashCode() ^
+                    //this.PlacedTime.GetHashCode() ^
                     this.History.GetHashCode() ^
                     this.Lines.GetHashCode();
             }
@@ -81,9 +81,73 @@ namespace SQLite.Net.Tests
                 }
 
                 return this.Id.Equals(other.Id) &&
-                    this.PlacedTime.Equals(other.PlacedTime) &&
+                    Math.Abs((this.PlacedTime - other.PlacedTime).TotalMilliseconds) < 100 &&
                     this.History.SequenceEqual(other.History) &&
                     this.Lines.SequenceEqual(other.Lines);
+            }
+        }
+
+        public class ComplexHistory : IEquatable<ComplexHistory>
+        {
+            public DateTime Time { get; set; }
+            public string Comment { get; set; }
+
+            public override int GetHashCode()
+            {
+                return this.Comment.GetHashCode();
+            }
+
+            public override bool Equals(object obj)
+            {
+                return this.Equals(obj as ComplexHistory);
+            }
+
+            public bool Equals(ComplexHistory other)
+            {
+                if (other == null)
+                {
+                    return false;
+                }
+
+                return this.Comment.Equals(other.Comment);
+            }
+        }
+
+        public class ComplexLine : IEquatable<ComplexLine>
+        {
+            [Indexed("IX_OrderProduct", 2)]
+            public int ProductId { get; set; }
+
+            public int Quantity { get; set; }
+            public decimal UnitPrice { get; set; }
+            public OrderLineStatus Status { get; set; }
+
+            public override bool Equals(object obj)
+            {
+                return this.Equals(obj as ComplexLine);
+            }
+
+            public override int GetHashCode()
+            {
+                return
+                    this.ProductId.GetHashCode() ^
+                    this.Quantity.GetHashCode() ^
+                    this.Status.GetHashCode() ^
+                    this.UnitPrice.GetHashCode();
+            }
+
+            public bool Equals(ComplexLine other)
+            {
+                if (other == null)
+                {
+                    return false;
+                }
+
+                return
+                    this.ProductId.Equals(other.ProductId) &&
+                    this.Quantity.Equals(other.Quantity) &&
+                    this.Status.Equals(other.Status) &&
+                    this.UnitPrice.Equals(other.UnitPrice);
             }
         }
 
@@ -155,12 +219,14 @@ namespace SQLite.Net.Tests
                 var orderCopy = db.Find<ComplexOrder>(order.Id);
                 Assert.AreEqual(order, orderCopy);
 
-                for (var n = 0; n < 1000; )
+                for (var n = 0; n < 10; )
                 {
-                    order.Lines.Add(new OrderLine() { ProductId = 1, Quantity = ++n, Status = OrderLineStatus.Placed, UnitPrice = (n / 10m) });
+                    order.Lines.Add(new ComplexLine() { ProductId = 1, Quantity = ++n, Status = OrderLineStatus.Placed, UnitPrice = (n / 10m) });
+                    db.Update(order);
                     orderCopy = db.Find<ComplexOrder>(order.Id);
                     Assert.AreEqual(order, orderCopy);
-                    order.History.Add(new OrderHistory() { Time = DateTime.UtcNow, Comment = string.Format("New history {0}", n) });
+                    order.History.Add(new ComplexHistory() { Time = DateTime.UtcNow, Comment = string.Format("New history {0}", n) });
+                    db.Update(order);
                     orderCopy = db.Find<ComplexOrder>(order.Id);
                     Assert.AreEqual(order, orderCopy);
                 }
