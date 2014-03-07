@@ -64,6 +64,7 @@
     </Compile>
     <Compile Include="BaseTableQuery.cs" />
     <Compile Include="CreateTablesResult.cs" />
+    <Compile Include="DataContractSerializer.cs" />
     <Compile Include="Interop\ColType.cs" />
     <Compile Include="Interop\ConfigOption.cs" />
     <Compile Include="Interop\IDbHandle.cs" />
@@ -75,6 +76,7 @@
     <Compile Include="Interop\IVolatileService.cs" />
     <Compile Include="Interop\Result.cs" />
     <Compile Include="Interop\IDbStatement.cs" />
+    <Compile Include="IBlobSerializer.cs" />
     <Compile Include="Orm.cs" />
     <Compile Include="PreparedSqlLiteInsertCommand.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

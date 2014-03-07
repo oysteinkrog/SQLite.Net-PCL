@@ -84,9 +84,13 @@ namespace SQLite.Net
         ///     only here for backwards compatibility. There is a *significant* speed advantage, with no
         ///     down sides, when setting storeDateTimeAsTicks = true.
         /// </param>
-        public SQLiteConnection(ISQLitePlatform sqlitePlatform, string databasePath, bool storeDateTimeAsTicks = false)
+        /// <param name="serializer">
+        ///     Blob serializer to use for storing undefined and complex data structures. If left null
+        ///     these types will thrown an exception as usual.
+        /// </param>
+        public SQLiteConnection(ISQLitePlatform sqlitePlatform, string databasePath, bool storeDateTimeAsTicks = false, IBlobSerializer serializer = null)
             : this(
-                sqlitePlatform, databasePath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create, storeDateTimeAsTicks)
+                sqlitePlatform, databasePath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create, storeDateTimeAsTicks, serializer)
         {
         }
 
@@ -105,9 +109,15 @@ namespace SQLite.Net
         ///     only here for backwards compatibility. There is a *significant* speed advantage, with no
         ///     down sides, when setting storeDateTimeAsTicks = true.
         /// </param>
+        /// <param name="serializer">
+        ///     Blob serializer to use for storing undefined and complex data structures. If left null
+        ///     these types will thrown an exception as usual.
+        /// </param>
         public SQLiteConnection(ISQLitePlatform sqlitePlatform, string databasePath, SQLiteOpenFlags openFlags,
-            bool storeDateTimeAsTicks = false)
+            bool storeDateTimeAsTicks = false, IBlobSerializer serializer = null)
         {
+            Serializer = serializer;
+
             _sqlitePlatform = sqlitePlatform;
 
             if (string.IsNullOrEmpty(databasePath))
@@ -176,6 +186,8 @@ namespace SQLite.Net
         {
             get { return _transactionDepth > 0; }
         }
+
+        public IBlobSerializer Serializer { get; private set; }
 
         public void Dispose()
         {
@@ -292,7 +304,7 @@ namespace SQLite.Net
             }
             string query = "create table if not exists \"" + map.TableName + "\"(\n";
 
-            IEnumerable<string> decls = map.Columns.Select(p => Orm.SqlDecl(p, StoreDateTimeAsTicks));
+            IEnumerable<string> decls = map.Columns.Select(p => Orm.SqlDecl(p, StoreDateTimeAsTicks, this.Serializer));
             string decl = string.Join(",\n", decls.ToArray());
             query += decl;
             query += ")";
@@ -440,7 +452,7 @@ namespace SQLite.Net
             foreach (TableMapping.Column p in toBeAdded)
             {
                 string addCol = "alter table \"" + map.TableName + "\" add column " +
-                                Orm.SqlDecl(p, StoreDateTimeAsTicks);
+                                Orm.SqlDecl(p, StoreDateTimeAsTicks, this.Serializer);
                 Execute(addCol);
             }
         }

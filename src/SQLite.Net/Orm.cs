@@ -35,9 +35,9 @@ namespace SQLite.Net
         public const string ImplicitPkName = "Id";
         public const string ImplicitIndexSuffix = "Id";
 
-        public static string SqlDecl(TableMapping.Column p, bool storeDateTimeAsTicks)
+        public static string SqlDecl(TableMapping.Column p, bool storeDateTimeAsTicks, IBlobSerializer serializer)
         {
-            string decl = "\"" + p.Name + "\" " + SqlType(p, storeDateTimeAsTicks) + " ";
+            string decl = "\"" + p.Name + "\" " + SqlType(p, storeDateTimeAsTicks, serializer) + " ";
 
             if (p.IsPK)
             {
@@ -59,7 +59,7 @@ namespace SQLite.Net
             return decl;
         }
 
-        public static string SqlType(TableMapping.Column p, bool storeDateTimeAsTicks)
+        public static string SqlType(TableMapping.Column p, bool storeDateTimeAsTicks, IBlobSerializer serializer)
         {
             Type clrType = p.ColumnType;
             if (clrType == typeof (Boolean) || clrType == typeof (Byte) || clrType == typeof (UInt16) ||
@@ -88,13 +88,17 @@ namespace SQLite.Net
             {
                 return "integer";
             }
-            if (clrType == typeof (byte[]))
-            {
-                return "blob";
-            }
             if (clrType == typeof (Guid))
             {
                 return "varchar(36)";
+            }
+            if (clrType == typeof(byte[]))
+            {
+                return "blob";
+            }
+            if (serializer != null && serializer.CanDeserialize(clrType))
+            {
+                return "blob";
             }
             throw new NotSupportedException("Don't know about " + clrType);
         }

@@ -58,8 +58,8 @@ namespace SQLite.Net.Tests
 
     public class TestDb : SQLiteConnection
     {
-        public TestDb(bool storeDateTimeAsTicks = false)
-            : base(new SQLitePlatformWin32(), TestPath.GetTempFileName(), storeDateTimeAsTicks)
+        public TestDb(bool storeDateTimeAsTicks = false, IBlobSerializer serializer = null)
+            : base(new SQLitePlatformWin32(), TestPath.GetTempFileName(), storeDateTimeAsTicks, serializer)
         {
             Trace = true;
         }

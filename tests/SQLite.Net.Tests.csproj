@@ -45,6 +45,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
+    <Compile Include="BlobJsonTest.cs" />
+    <Compile Include="BlobSerializationTest.cs" />
     <Compile Include="BooleanTest.cs" />
     <Compile Include="ByteArrayTest.cs" />
     <Compile Include="ConnectionTrackingTest.cs" />
@@ -74,6 +76,7 @@
     <Compile Include="OpenTests.cs" />
     <Compile Include="MigrationTest.cs" />
     <Compile Include="EqualsTest.cs" />
+    <Compile Include="BlobXmlTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
