@@ -28,7 +28,7 @@ using SQLite.Net.Attributes;
 
 namespace SQLite.Net.Tests
 {
-    [TestFixture]
+    //[TestFixture]
     public abstract class BlobSerializationTest
     {   
         protected abstract IBlobSerializer Serializer { get; }
@@ -174,41 +174,30 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public void VerifyTableCreationSucceedsWithSerializer()
+        public void VerifyTableCreationSucceedsWithSupportedSerializer()
         {
-            var canDeserialize = this.Serializer.CanDeserialize(typeof(ComplexOrder));
+            if (!this.Serializer.CanDeserialize(typeof(ComplexOrder)))
+            {
+                Assert.Ignore("Serialize does not support this data type");
+            }
 
-            NotSupportedException ex = null;
             using (var db = new BlobDatabase(this.Serializer))
             {
-                try
-                {
-                    var count = db.CreateTable<ComplexOrder>();
-                    if (canDeserialize)
-                    {
-                        //Assert.AreEqual(count, 1);
-                        var mapping = db.GetMapping<ComplexOrder>();
-                        Assert.IsNotNull(mapping);
-                        Assert.AreEqual(4, mapping.Columns.Length);
-                    }
-                    //else
-                    //{
-                    //    Assert.AreEqual(count, 0);
-                    //    return;
-                    //}
-                }
-                catch (NotSupportedException e)
-                {
-                    ex = e;
-                }
+                var count = db.CreateTable<ComplexOrder>();
+                var mapping = db.GetMapping<ComplexOrder>();
+                Assert.IsNotNull(mapping);
+                Assert.AreEqual(4, mapping.Columns.Length);
             }
-            
-            Assert.AreEqual(canDeserialize, ex == null);
         }
 
-        [Test]
+        //[Test]
         public void TestListOfObjects()
         {
+            if (!this.Serializer.CanDeserialize(typeof(ComplexOrder)))
+            {
+                Assert.Ignore("Serialize does not support this data type");
+            }
+
             using (var db = new BlobDatabase(this.Serializer))
             {
                 db.CreateTable<ComplexOrder>();
@@ -231,6 +220,198 @@ namespace SQLite.Net.Tests
                     Assert.AreEqual(order, orderCopy);
                 }
             }
+        }
+    }
+
+    [TestFixture]
+    public class BlobDelegateTest : BlobSerializationTest
+    {
+        public enum Bool { True, False }
+
+        public class SupportedTypes
+        {
+            public Boolean Boolean { get; set; }
+            public Byte Byte { get; set; }
+            public UInt16 UInt16 { get; set; }
+            public SByte SByte { get; set; }
+            public Int16 Int16 { get; set; }
+            public Int32 Int32 { get; set; }
+            public UInt32 UInt32{ get; set; }
+            public Int64 Int64{ get; set; }
+            public Single Single { get; set; }
+            public Double Double { get; set; }
+            public Decimal Decimal { get; set; }
+            public String String{ get; set; }
+            public DateTime DateTime{ get; set; }
+            public Bool EnumBool{ get; set; }
+            public Guid Guid{ get; set; }
+            public byte[] Bytes{ get; set; }
+        }
+
+        public class UnsupportedTypes
+        {
+            [PrimaryKey]
+            public Guid Id { get; set; }
+
+            public TimeSpan Timespan { get; set; }
+            public DateTimeOffset DateTimeOffset { get; set; }
+        }
+
+        protected override IBlobSerializer Serializer
+        {
+            get
+            {
+                return new BlobSerializerDelegate(
+                    obj => new byte[0],
+                    (data, type) => null,
+                    type => false);
+            }
+        }
+
+        [Test]
+        public void CanDeserializeIsRequested()
+        {
+            List<Type> types = new List<Type>();
+
+            var serializer = new BlobSerializerDelegate(obj => null, (d, t) => null, t =>
+                {
+                    types.Add(t);
+                    return true;
+                });
+
+            using (var db = new BlobDatabase(serializer))
+            {
+                db.CreateTable<ComplexOrder>();
+            }
+
+            Assert.Contains(typeof(List<ComplexHistory>), types);
+            Assert.Contains(typeof(List<ComplexLine>), types);
+
+            Assert.AreEqual(2, types.Count, "Too many types requested by serializer");
+        }
+
+        [Test]
+        public void DoesNotCallOnSupportedTypes()
+        {
+            List<Type> types = new List<Type>();
+
+            var serializer = new BlobSerializerDelegate(obj => null, (d, t) => null, t =>
+            {
+                throw new InvalidOperationException(string.Format("Type {0} should not be requested.", t));
+            });
+
+            using (var db = new BlobDatabase(serializer))
+            {
+                db.CreateTable<SupportedTypes>();
+            }
+
+            Assert.AreEqual(0, types.Count, "Types requested from serializer");
+        }
+
+        [Test]
+        public void CallsOnUnsupportedTypes()
+        {
+            List<Type> types = new List<Type>();
+
+            var serializer = new BlobSerializerDelegate(obj => null, (d, t) => null, t =>
+            {
+                types.Add(t);
+                return true;
+            });
+
+            using (var db = new BlobDatabase(serializer))
+            {
+                db.CreateTable<UnsupportedTypes>();
+            }
+
+            Assert.Contains(typeof(DateTimeOffset), types);
+            Assert.Contains(typeof(TimeSpan), types);
+
+            Assert.AreEqual(2, types.Count, "Too many types requested by serializer");
+        }
+
+        [Test]
+        public void SavesUnsupportedTypes()
+        {
+            UnsupportedTypes item = null;
+
+            var serializer = new BlobSerializerDelegate(
+                obj =>
+                {
+                    if (obj is DateTimeOffset)
+                    {
+                        Assert.AreEqual(item.DateTimeOffset, obj);
+                        var offset = (DateTimeOffset)obj;
+                        var bytes = new byte[16];
+                        Buffer.BlockCopy(BitConverter.GetBytes(offset.Ticks), 0, bytes, 0, 8);
+                        Buffer.BlockCopy(BitConverter.GetBytes(offset.Offset.Ticks), 0, bytes, 8, 8);
+                        return bytes;
+                    }
+
+                    if (obj is TimeSpan)
+                    {
+                        Assert.AreEqual(item.Timespan, obj);
+                        return BitConverter.GetBytes(((TimeSpan)obj).Ticks);
+                    }
+
+                    throw new InvalidOperationException(string.Format("Type {0} should not be requested.", obj.GetType()));
+                },
+                (d, t) =>
+                {
+                    if (t == typeof(DateTimeOffset))
+                    {
+                        var ticks = BitConverter.ToInt64(d, 0);
+                        var offset = BitConverter.ToInt64(d, 8);
+                        return new DateTimeOffset(ticks, TimeSpan.FromTicks(offset));
+                    }
+
+                    if (t == typeof(TimeSpan))
+                    {
+                        return TimeSpan.FromTicks(BitConverter.ToInt64(d, 0));
+                    }
+
+                    throw new InvalidOperationException(string.Format("Type {0} should not be requested.", t));
+                },
+                t =>
+                {
+                    return true;
+                });
+
+            using (var db = new BlobDatabase(serializer))
+            {
+                db.CreateTable<UnsupportedTypes>();
+                item = new UnsupportedTypes() 
+                {
+                    Id = Guid.NewGuid(),
+                    DateTimeOffset = DateTime.Now, 
+                    Timespan = TimeSpan.FromTicks(123469)
+                };
+
+                db.Insert(item);
+                var dbItem = db.Find<UnsupportedTypes>(item.Id);
+
+                Assert.AreEqual(item.Id, dbItem.Id);
+                Assert.AreEqual(item.DateTimeOffset, dbItem.DateTimeOffset);
+                Assert.AreEqual(item.Timespan, dbItem.Timespan);
+            }
+        }
+    }
+
+    [TestFixture]
+    public class BlobXmlTest : BlobSerializationTest
+    {
+        protected override IBlobSerializer Serializer
+        {
+            get { return new XmlSerializer(); }
+        }
+    }
+
+    [TestFixture]
+    public class BlobJsonTest : BlobSerializationTest
+    {
+        protected override IBlobSerializer Serializer
+        {
+            get { return new JsonSerializer(); }
         }
     }
 }

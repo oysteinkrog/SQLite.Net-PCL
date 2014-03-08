@@ -45,7 +45,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Compile Include="BlobJsonTest.cs" />
     <Compile Include="BlobSerializationTest.cs" />
     <Compile Include="BooleanTest.cs" />
     <Compile Include="ByteArrayTest.cs" />
@@ -76,13 +75,15 @@
     <Compile Include="OpenTests.cs" />
     <Compile Include="MigrationTest.cs" />
     <Compile Include="EqualsTest.cs" />
-    <Compile Include="BlobXmlTest.cs" />
-    <Compile Include="BlobSerializerDelegateTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\src\Plugins\SQLite.Net.DataContractSerializer\SQLite.Net.DataContractSerializer.csproj">
+      <Project>{c5b13307-4cc9-45a5-90c4-36bd2a516e07}</Project>
+      <Name>SQLite.Net.DataContractSerializer</Name>
+    </ProjectReference>
     <ProjectReference Include="..\src\SQLite.Net.Async\SQLite.Net.Async.csproj">
       <Project>{3AB34E91-8E1A-442F-8E66-2494B371A890}</Project>
       <Name>SQLite.Net.Async</Name>
