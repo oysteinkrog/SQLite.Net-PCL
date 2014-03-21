@@ -81,9 +81,9 @@ namespace SQLite.Net
             return GetEnumerator();
         }
 
-        public TableQuery<T> Clone()
+        public TableQuery<U> Clone<U>()
         {
-            var q = new TableQuery<T>(_sqlitePlatform, Connection, Table);
+            var q = new TableQuery<U>(_sqlitePlatform, Connection, Table);
             q._where = _where;
             q._deferred = _deferred;
             if (_orderBys != null)
@@ -107,7 +107,7 @@ namespace SQLite.Net
             {
                 var lambda = (LambdaExpression) predExpr;
                 Expression pred = lambda.Body;
-                TableQuery<T> q = Clone();
+                TableQuery<T> q = Clone<T>();
                 q.AddWhere(pred);
                 return q;
             }
@@ -119,14 +119,14 @@ namespace SQLite.Net
 
         public TableQuery<T> Take(int n)
         {
-            TableQuery<T> q = Clone();
+            TableQuery<T> q = Clone<T>();
             q._limit = n;
             return q;
         }
 
         public TableQuery<T> Skip(int n)
         {
-            TableQuery<T> q = Clone();
+            TableQuery<T> q = Clone<T>();
             q._offset = n;
             return q;
         }
@@ -138,7 +138,7 @@ namespace SQLite.Net
 
         public TableQuery<T> Deferred()
         {
-            TableQuery<T> q = Clone();
+            TableQuery<T> q = Clone<T>();
             q._deferred = true;
             return q;
         }
@@ -173,7 +173,7 @@ namespace SQLite.Net
 
                 if (mem != null && (mem.Expression.NodeType == ExpressionType.Parameter))
                 {
-                    TableQuery<T> q = Clone();
+                    TableQuery<T> q = Clone<T>();
                     if (q._orderBys == null)
                     {
                         q._orderBys = new List<Ordering>();
@@ -225,9 +225,9 @@ namespace SQLite.Net
             return q;
         }
 
-        public TableQuery<T> Select<TResult>(Expression<Func<T, TResult>> selector)
+        public TableQuery<TResult> Select<TResult>(Expression<Func<T, TResult>> selector)
         {
-            TableQuery<T> q = Clone();
+            TableQuery<TResult> q = Clone<TResult>();
             q._selector = selector;
             return q;
         }
@@ -296,9 +296,9 @@ namespace SQLite.Net
                 {
                     text = "(" + leftr.CommandText + " " + GetSqlName(bin) + " " + rightr.CommandText + ")";
                 }
-                return new CompileResult
-                {
-                    CommandText = text
+                return new CompileResult 
+                { 
+                    CommandText = text 
                 };
             }
             else if (expr.NodeType == ExpressionType.Call)
@@ -348,7 +348,7 @@ namespace SQLite.Net
                 else if (call.Method.Name == "ToLower")
                 {
                     sqlCall = "(lower(" + obj.CommandText + "))";
-                } 
+                }
                 else if (call.Method.Name == "ToUpper")
                 {
                     sqlCall = "(upper(" + obj.CommandText + "))";
