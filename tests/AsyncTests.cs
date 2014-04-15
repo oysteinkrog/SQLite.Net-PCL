@@ -100,7 +100,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task FindAsyncWithExpression()
+        public async void FindAsyncWithExpression()
         {
             // create...
             var customer = new Customer();
@@ -125,7 +125,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task FindAsyncWithExpressionNull()
+        public async void FindAsyncWithExpressionNull()
         {
             // connect and insert...
             SQLiteAsyncConnection conn = GetConnection();
@@ -139,7 +139,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task GetAsync()
+        public async void GetAsync()
         {
             // create...
             var customer = new Customer();
@@ -164,7 +164,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task StressAsync()
+        public async void StressAsync()
         {
             string path = null;
             SQLiteAsyncConnection globalConn = GetConnection(ref path);
@@ -213,7 +213,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncGetWithExpression()
+        public async void TestAsyncGetWithExpression()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -234,7 +234,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableElementAtAsync()
+        public async void TestAsyncTableElementAtAsync()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -257,7 +257,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableOrderBy()
+        public async void TestAsyncTableOrderBy()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -278,7 +278,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableOrderByDescending()
+        public async void TestAsyncTableOrderByDescending()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -299,7 +299,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableQueryCountAsync()
+        public async void TestAsyncTableQueryCountAsync()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -320,7 +320,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableQuerySkip()
+        public async void TestAsyncTableQuerySkip()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -344,7 +344,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableQueryTake()
+        public async void TestAsyncTableQueryTake()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -368,7 +368,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableQueryToFirstAsyncFound()
+        public async void TestAsyncTableQueryToFirstAsyncFound()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -386,7 +386,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableQueryToFirstAsyncMissing()
+        public async void TestAsyncTableQueryToFirstAsyncMissing()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -401,7 +401,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableQueryToFirstOrDefaultAsyncFound()
+        public async void TestAsyncTableQueryToFirstOrDefaultAsyncFound()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -419,7 +419,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableQueryToFirstOrDefaultAsyncMissing()
+        public async void TestAsyncTableQueryToFirstOrDefaultAsyncMissing()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -437,7 +437,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableQueryToListAsync()
+        public async void TestAsyncTableQueryToListAsync()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -456,7 +456,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestAsyncTableQueryWhereOperation()
+        public async void TestAsyncTableQueryWhereOperation()
         {
             SQLiteAsyncConnection conn = GetConnection();
             await conn.CreateTableAsync<Customer>();
@@ -475,7 +475,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestCreateTableAsync()
+        public async void TestCreateTableAsync()
         {
             string path = null;
             SQLiteAsyncConnection conn = GetConnection(ref path);
@@ -495,7 +495,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestDeleteAsync()
+        public async void TestDeleteAsync()
         {
             // create...
             Customer customer = CreateCustomer();
@@ -521,7 +521,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestDropTableAsync()
+        public async void TestDropTableAsync()
         {
             string path = null;
             SQLiteAsyncConnection conn = GetConnection(ref path);
@@ -541,7 +541,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestExecuteAsync()
+        public async void TestExecuteAsync()
         {
             // connect...
             string path = null;
@@ -563,7 +563,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestExecuteScalar()
+        public async void TestExecuteScalar()
         {
             // connect...
             SQLiteAsyncConnection conn = GetConnection();
@@ -575,7 +575,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestFindAsyncItemMissing()
+        public async void TestFindAsyncItemMissing()
         {
             // connect and insert...
             SQLiteAsyncConnection conn = GetConnection();
@@ -589,7 +589,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestFindAsyncItemPresent()
+        public async void TestFindAsyncItemPresent()
         {
             // create...
             Customer customer = CreateCustomer();
@@ -612,7 +612,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestInsertAllAsync()
+        public async void TestInsertAllAsync()
         {
             // create a bunch of customers...
             var customers = new List<Customer>();
@@ -646,7 +646,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestInsertAsync()
+        public async void TestInsertAsync()
         {
             // create...
             Customer customer = CreateCustomer();
@@ -672,7 +672,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestQueryAsync()
+        public async void TestQueryAsync()
         {
             // connect...
             SQLiteAsyncConnection conn = GetConnection();
@@ -700,7 +700,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestRunInTransactionAsync()
+        public async void TestRunInTransactionAsync()
         {
             // connect...
             string path = null;
@@ -736,7 +736,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestTableAsync()
+        public async void TestTableAsync()
         {
             // connect...
             SQLiteAsyncConnection conn = GetConnection();
@@ -773,7 +773,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task TestUpdateAsync()
+        public async void TestUpdateAsync()
         {
             // create...
             Customer customer = CreateCustomer();

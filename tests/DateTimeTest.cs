@@ -82,7 +82,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task AsyncAsString()
+        public async void AsyncAsString()
         {
             var sqLiteConnectionPool = new SQLiteConnectionPool(new SQLitePlatformTest());
             var sqLiteConnectionString = new SQLiteConnectionString(TestPath.GetTempFileName(), false);
@@ -91,7 +91,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
-        public async Task AsyncAsTicks()
+        public async void AsyncAsTicks()
         {
             var sqLiteConnectionPool = new SQLiteConnectionPool(new SQLitePlatformTest());
             var sqLiteConnectionString = new SQLiteConnectionString(TestPath.GetTempFileName(), true);
