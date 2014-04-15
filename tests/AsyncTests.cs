@@ -47,6 +47,7 @@ namespace SQLite.Net.Tests
     ///     Defines tests that exercise async behaviour.
     /// </summary>
     [TestFixture]
+    [Category("Async")]
     public class AsyncTests
     {
         [SetUp]
@@ -382,7 +383,7 @@ namespace SQLite.Net.Tests
             // query...
             AsyncTableQuery<Customer> query = conn.Table<Customer>().Where(v => v.Id == customer.Id);
             var loaded = await query.FirstAsync();
-            
+
             // check...
             Assert.AreEqual(customer.Email, loaded.Email);
         }
