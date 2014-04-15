@@ -12,6 +12,8 @@ using SQLite.Net.Platform.XamarinIOS;
 #elif WINDOWS_PHONE
 using SQLite.Net.Platform.WindowsPhone8;
 using Windows.Storage;
+#elif __MonoCS__
+using SQLitePlatform = SQLite.Net.Platform.Mono.SQLitePlatformMono;
 #else
 using SQLitePlatform = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
 #endif

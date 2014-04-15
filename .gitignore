@@ -8,5 +8,6 @@ obj
 bin
 test-results
 TestResults
+TestResult.xml
 *.nupkg
 /packages
