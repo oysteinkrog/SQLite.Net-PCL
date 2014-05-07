@@ -1,4 +1,4 @@
-//
+﻿//
 // Copyright (c) 2012 Krueger Systems, Inc.
 // Copyright (c) 2013 Øystein Krog (oystein.krog@gmail.com)
 // 
@@ -296,9 +296,9 @@ namespace SQLite.Net
                 {
                     text = "(" + leftr.CommandText + " " + GetSqlName(bin) + " " + rightr.CommandText + ")";
                 }
-                return new CompileResult 
-                { 
-                    CommandText = text 
+                return new CompileResult
+                {
+                    CommandText = text
                 };
             }
             else if (expr.NodeType == ExpressionType.Call)
@@ -348,7 +348,7 @@ namespace SQLite.Net
                 else if (call.Method.Name == "ToLower")
                 {
                     sqlCall = "(lower(" + obj.CommandText + "))";
-                }
+                } 
                 else if (call.Method.Name == "ToUpper")
                 {
                     sqlCall = "(upper(" + obj.CommandText + "))";
