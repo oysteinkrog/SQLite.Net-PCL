@@ -30,6 +30,11 @@ namespace SQLite.Net
     {
         private readonly object _lockPoint = new object();
 
+        public SQLiteConnectionWithLock(ISQLitePlatform sqlitePlatform, string connectionString)
+            : base(sqlitePlatform, connectionString)
+        {
+        }
+
         public SQLiteConnectionWithLock(ISQLitePlatform sqlitePlatform, SQLiteConnectionString connectionString)
             : base(sqlitePlatform, connectionString.DatabasePath, connectionString.StoreDateTimeAsTicks, connectionString.Serializer)
         {
@@ -38,6 +43,11 @@ namespace SQLite.Net
         public IDisposable Lock()
         {
             return new LockWrapper(_lockPoint);
+        }
+
+        public bool IsLocked()
+        {
+            return Monitor.IsEntered(_lockPoint);
         }
 
         private class LockWrapper : IDisposable
