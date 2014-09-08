@@ -318,22 +318,22 @@ namespace SQLite.Net
                 {
                     if (storeDateTimeAsTicks)
                     {
-                        isqLite3Api.BindInt64(stmt, index, ((DateTime) value).Ticks);
+                        isqLite3Api.BindInt64(stmt, index, ((DateTime) value).ToUniversalTime().Ticks);
                     }
                     else
                     {
-                        isqLite3Api.BindText16(stmt, index, ((DateTime) value).ToString("yyyy-MM-dd HH:mm:ss"), -1, NegativePointer);
+                        isqLite3Api.BindText16(stmt, index, ((DateTime) value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"), -1, NegativePointer);
                     }
                 }
                 else if (value is ISerializable<DateTime>)
                 {
                     if (storeDateTimeAsTicks)
                     {
-                        isqLite3Api.BindInt64(stmt, index, ((ISerializable<DateTime>)value).Serialize().Ticks);
+                        isqLite3Api.BindInt64(stmt, index, ((ISerializable<DateTime>)value).Serialize().ToUniversalTime().Ticks);
                     }
                     else
                     {
-                        isqLite3Api.BindText16(stmt, index, ((ISerializable<DateTime>)value).Serialize().ToString("yyyy-MM-dd HH:mm:ss"), -1, NegativePointer);
+                        isqLite3Api.BindText16(stmt, index, ((ISerializable<DateTime>)value).Serialize().ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"), -1, NegativePointer);
                     }
                 }
                 else if (value.GetType().IsEnum)
@@ -432,7 +432,7 @@ namespace SQLite.Net
             {
                 if (_conn.StoreDateTimeAsTicks)
                 {
-                    return new DateTime(_sqlitePlatform.SQLiteApi.ColumnInt64(stmt, index));
+                    return new DateTime(_sqlitePlatform.SQLiteApi.ColumnInt64(stmt, index), DateTimeKind.Utc);
                 }
                 return DateTime.Parse(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index));
             }
