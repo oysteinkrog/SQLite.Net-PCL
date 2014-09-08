@@ -31,7 +31,7 @@ namespace SQLite.Net
 {
     public static class Orm
     {
-        public const int DefaultMaxStringLength = 140;
+        public const int DefaultMaxStringLength = 0;
         public const string ImplicitPkName = "Id";
         public const string ImplicitIndexSuffix = "Id";
 
@@ -78,6 +78,8 @@ namespace SQLite.Net
             if (clrType == typeof (String))
             {
                 int len = p.MaxStringLength;
+				if (len == 0)
+					return "text";
                 return "varchar(" + len + ")";
             }
             if (clrType == typeof (TimeSpan))
