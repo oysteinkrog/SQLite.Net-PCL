@@ -14,6 +14,17 @@ namespace SQLite.Net.Platform.XamarinIOS
             return r;
         }
 
+        public ExtendedResult ExtendedErrCode(IDbHandle db)
+        {
+            var internalDbHandle = (DbHandle) db;
+            return SQLiteApiIOSInternal.sqlite3_extended_errcode(internalDbHandle.DbPtr);
+        }
+
+        public int LibVersionNumber()
+        {
+            return SQLiteApiIOSInternal.sqlite3_libversion_number();
+        }
+
         public Result EnableLoadExtension(IDbHandle db, int onoff)
         {
             var internalDbHandle = (DbHandle) db;
@@ -24,6 +35,20 @@ namespace SQLite.Net.Platform.XamarinIOS
         {
             var internalDbHandle = (DbHandle) db;
             return SQLiteApiIOSInternal.sqlite3_close(internalDbHandle.DbPtr);
+        }
+
+        public Result Initialize()
+        {
+            return SQLiteApiIOSInternal.sqlite3_initialize();
+        }
+        public Result Shutdown()
+        {
+            return SQLiteApiIOSInternal.sqlite3_shutdown();
+        }
+
+        public Result Config(ConfigOption option)
+        {
+            return SQLiteApiIOSInternal.sqlite3_config(option);
         }
 
         public Result BusyTimeout(IDbHandle db, int milliseconds)

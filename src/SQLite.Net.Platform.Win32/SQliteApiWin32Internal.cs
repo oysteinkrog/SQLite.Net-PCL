@@ -47,6 +47,12 @@ namespace SQLite.Net.Platform.Win32
         [DllImport("SQLite.Interop.dll", EntryPoint = "sqlite3_close", CallingConvention = CallingConvention.Cdecl)]
         public static extern Result sqlite3_close(IntPtr db);
 
+        [DllImport("SQLite.Interop.dll", EntryPoint = "sqlite3_initialize", CallingConvention = CallingConvention.Cdecl)]
+        public static extern Result sqlite3_initialize();
+
+        [DllImport("SQLite.Interop.dll", EntryPoint = "sqlite3_shutdown", CallingConvention = CallingConvention.Cdecl)]
+        public static extern Result sqlite3_shutdown();
+
         [DllImport("SQLite.Interop.dll", EntryPoint = "sqlite3_config", CallingConvention = CallingConvention.Cdecl)]
         public static extern Result sqlite3_config(ConfigOption option);
 
@@ -178,5 +184,11 @@ namespace SQLite.Net.Platform.Win32
         [DllImport("SQLite.Interop.dll", EntryPoint = "sqlite3_column_name16",
             CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr sqlite3_column_name16(IntPtr stmt, int index);
+
+        [DllImport("SQLite.Interop.dll", EntryPoint = "sqlite3_extended_errcode", CallingConvention = CallingConvention.Cdecl)]
+        public static extern ExtendedResult sqlite3_extended_errcode(IntPtr db);
+
+        [DllImport("SQLite.Interop.dll", EntryPoint = "sqlite3_libversion_number", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int sqlite3_libversion_number();
     }
 }

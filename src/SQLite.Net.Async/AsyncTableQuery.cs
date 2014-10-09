@@ -106,59 +106,67 @@ namespace SQLite.Net.Async
             return new AsyncTableQuery<T>(_innerQuery.ThenByDescending(orderExpr), _taskScheduler ?? TaskScheduler.Default, _taskCreationOptions);
         }
 
-        public Task<List<T>> ToListAsync()
+
+        public Task<List<T>> ToListAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             return Task.Factory.StartNew(() =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 using (((SQLiteConnectionWithLock)_innerQuery.Connection).Lock())
                 {
                     return _innerQuery.ToList();
                 }
-            }, CancellationToken.None, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
+            }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
 
-        public Task<int> CountAsync()
+        public Task<int> CountAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             return Task.Factory.StartNew(() =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 using (((SQLiteConnectionWithLock)_innerQuery.Connection).Lock())
                 {
                     return _innerQuery.Count();
                 }
-            }, CancellationToken.None, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
+            }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
 
-        public Task<T> ElementAtAsync(int index)
+        public Task<T> ElementAtAsync(int index, CancellationToken cancellationToken = default(CancellationToken))
         {
             return Task.Factory.StartNew(() =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 using (((SQLiteConnectionWithLock)_innerQuery.Connection).Lock())
                 {
                     return _innerQuery.ElementAt(index);
                 }
-            }, CancellationToken.None, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
+            }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
 
-        public Task<T> FirstAsync()
+        public Task<T> FirstAsync(CancellationToken cancellationToken = default (CancellationToken))
         {
             return Task.Factory.StartNew(() =>
             {
-                using (((SQLiteConnectionWithLock)_innerQuery.Connection).Lock())
+                cancellationToken.ThrowIfCancellationRequested();
+                using (((SQLiteConnectionWithLock) _innerQuery.Connection).Lock())
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     return _innerQuery.First();
                 }
-            }, CancellationToken.None, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
+            }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
 
-        public Task<T> FirstOrDefaultAsync()
+        public Task<T> FirstOrDefaultAsync(CancellationToken cancellationToken = default (CancellationToken))
         {
             return Task.Factory.StartNew(() =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 using (((SQLiteConnectionWithLock)_innerQuery.Connection).Lock())
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     return _innerQuery.FirstOrDefault();
                 }
-            }, CancellationToken.None, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
+            }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
     }
 }

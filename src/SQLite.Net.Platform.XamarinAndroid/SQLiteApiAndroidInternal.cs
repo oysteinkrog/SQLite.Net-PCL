@@ -62,6 +62,12 @@ namespace SQLite.Net.Platform.XamarinAndroid
         [DllImport(DllName, EntryPoint = "sqlite3_close", CallingConvention = CallingConvention.Cdecl)]
         public static extern Result sqlite3_close(IntPtr db);
 
+        [DllImport("sqlite3", EntryPoint = "sqlite3_initialize", CallingConvention = CallingConvention.Cdecl)]
+        public static extern Result sqlite3_initialize();
+
+        [DllImport("sqlite3", EntryPoint = "sqlite3_shutdown", CallingConvention = CallingConvention.Cdecl)]
+        public static extern Result sqlite3_shutdown();
+
         [DllImport(DllName, EntryPoint = "sqlite3_column_blob", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr sqlite3_column_blob(IntPtr stmt, int index);
 
@@ -144,5 +150,11 @@ namespace SQLite.Net.Platform.XamarinAndroid
 
         [DllImport(DllName, EntryPoint = "sqlite3_column_name16", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr sqlite3_column_name16(IntPtr stmt, int index);
+
+        [DllImport("sqlite3", EntryPoint = "sqlite3_extended_errcode", CallingConvention = CallingConvention.Cdecl)]
+        public static extern ExtendedResult sqlite3_extended_errcode(IntPtr db);
+
+        [DllImport("sqlite3", EntryPoint = "sqlite3_libversion_number", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int sqlite3_libversion_number();
     }
 }

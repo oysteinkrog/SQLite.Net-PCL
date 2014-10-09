@@ -14,6 +14,17 @@ namespace SQLite.Net.Platform.Win32
             return r;
         }
 
+        public ExtendedResult ExtendedErrCode(IDbHandle db)
+        {
+            var internalDbHandle = (DbHandle) db;
+            return SQLiteApiWin32Internal.sqlite3_extended_errcode(internalDbHandle.DbPtr);
+        }
+
+        public int LibVersionNumber()
+        {
+            return SQLiteApiWin32Internal.sqlite3_libversion_number();
+        }
+
         public Result EnableLoadExtension(IDbHandle db, int onoff)
         {
             var internalDbHandle = (DbHandle) db;
@@ -25,6 +36,21 @@ namespace SQLite.Net.Platform.Win32
             var internalDbHandle = (DbHandle) db;
             return SQLiteApiWin32Internal.sqlite3_close(internalDbHandle.DbPtr);
         }
+
+        public Result Initialize()
+        {
+            return SQLiteApiWin32Internal.sqlite3_initialize();
+        }
+        public Result Shutdown()
+        {
+            return SQLiteApiWin32Internal.sqlite3_shutdown();
+        }
+
+        public Result Config(ConfigOption option)
+        {
+            return SQLiteApiWin32Internal.sqlite3_config(option);
+        }
+
 
         public Result BusyTimeout(IDbHandle db, int milliseconds)
         {
