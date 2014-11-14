@@ -38,6 +38,8 @@ namespace SQLite.Net
         private string _insertCommandExtra;
         private Column[] _insertOrReplaceColumns;
 
+        public bool findColumnLinqCaseInsensitive { get; set; }
+
         public TableMapping(ISQLitePlatform platformImplementation, Type type,
                             CreateFlags createFlags = CreateFlags.None)
         {
@@ -132,13 +134,29 @@ namespace SQLite.Net
 
         public Column FindColumnWithPropertyName(string propertyName)
         {
-            var exact = Columns.Where (c => c.PropertyName.Equals(propertyName,StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault ();
+            var exact;
+            if (findColumnLinqCaseInsensitive) 
+            {
+                exact = Columns.Where(c => c.PropertyName.Equals(propertyName, StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
+            } 
+            else 
+            { 
+                exact = Columns.Where(c => c.PropertyName == propertyName).FirstOrDefault();
+            }
             return exact;
         }
 
         public Column FindColumn(string columnName)
         {
-            Column exact = Columns.FirstOrDefault(c => c.Name.Equals(columnName, StringComparison.CurrentCultureIgnoreCase));
+            Column exact;
+            if (findColumnLinqCaseInsensitive)
+            {
+                exact = Columns.FirstOrDefault(c => c.Name.Equals(columnName, StringComparison.CurrentCultureIgnoreCase));
+            }
+            else
+            {
+                exact = Columns.FirstOrDefault(c => c.Name == columnName);
+            }
             return exact;
         }
 
@@ -177,9 +195,9 @@ namespace SQLite.Net
 
                 insertSql = string.Format("insert {3} into \"{0}\"({1}) values ({2})", TableName,
                     string.Join(",", (from c in cols
-                                                     select "\"" + c.Name + "\"").ToArray()),
+                                      select "\"" + c.Name + "\"").ToArray()),
                     string.Join(",", (from c in cols
-                                                     select "?").ToArray()), extra);
+                                      select "?").ToArray()), extra);
             }
 
             var insertCommand = new PreparedSqlLiteInsertCommand(_sqlitePlatform, conn);
