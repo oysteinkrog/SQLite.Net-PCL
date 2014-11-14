@@ -1,6 +1,6 @@
 //
 // Copyright (c) 2012 Krueger Systems, Inc.
-// Copyright (c) 2013 Øystein Krog (oystein.krog@gmail.com)
+// Copyright (c) 2013 Ã˜ystein Krog (oystein.krog@gmail.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -132,13 +132,13 @@ namespace SQLite.Net
 
         public Column FindColumnWithPropertyName(string propertyName)
         {
-            Column exact = Columns.FirstOrDefault(c => c.PropertyName == propertyName);
+            var exact = Columns.Where (c => c.PropertyName.Equals(propertyName,StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault ();
             return exact;
         }
 
         public Column FindColumn(string columnName)
         {
-            Column exact = Columns.FirstOrDefault(c => c.Name == columnName);
+            Column exact = Columns.FirstOrDefault(c => c.Name.Equals(columnName, StringComparison.CurrentCultureIgnoreCase));
             return exact;
         }
 
