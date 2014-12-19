@@ -42,13 +42,15 @@ namespace SQLite.Net
     {
         internal static readonly IDbHandle NullHandle = default(IDbHandle);
 
+        public bool findColumnLinqCaseInsensitive { get; set; }
+
         /// <summary>
         ///     Used to list some code that we want the MonoTouch linker
         ///     to see, but that we never want to actually execute.
         /// </summary>
-        #pragma warning disable 649
+#pragma warning disable 649
         private static bool _preserveDuringLinkMagic;
-        #pragma warning restore 649
+#pragma warning restore 649
 
         private readonly Random _rand = new Random();
 
@@ -496,7 +498,7 @@ namespace SQLite.Net
         /// <seealso cref="SQLiteCommand.OnInstanceCreated" />
         protected virtual SQLiteCommand NewCommand()
         {
-            return new SQLiteCommand(Platform, this);
+            return new SQLiteCommand(Platform, this, findColumnLinqCaseInsensitive);
         }
 
         /// <summary>
@@ -520,6 +522,7 @@ namespace SQLite.Net
             }
 
             SQLiteCommand cmd = NewCommand();
+            cmd.findColumnLinqCaseInsensitive = findColumnLinqCaseInsensitive;
             cmd.CommandText = cmdText;
             foreach (object o in args)
             {
@@ -1383,15 +1386,15 @@ namespace SQLite.Net
             }
 
             IEnumerable<TableMapping.Column> cols = from p in map.Columns
-                                                             where p != pk
-                                                             select p;
+                                                    where p != pk
+                                                    select p;
             IEnumerable<object> vals = from c in cols
-                                                select c.GetValue(obj);
+                                       select c.GetValue(obj);
             var ps = new List<object>(vals);
             ps.Add(pk.GetValue(obj));
             string q = string.Format("update \"{0}\" set {1} where {2} = ? ", map.TableName,
                            string.Join(",", (from c in cols
-                                              select "\"" + c.Name + "\" = ? ").ToArray()), pk.Name);
+                                             select "\"" + c.Name + "\" = ? ").ToArray()), pk.Name);
             try
             {
                 rowsAffected = Execute(q, ps.ToArray());
