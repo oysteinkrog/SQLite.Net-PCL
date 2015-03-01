@@ -212,11 +212,6 @@ namespace SQLite.Net
 
         private void AddWhere(Expression pred)
         {
-            if (_limit != null || _offset != null)
-            {
-                throw new NotSupportedException("Cannot call where after a skip or a take");
-            }
-
             if (_where == null)
             {
                 _where = pred;
