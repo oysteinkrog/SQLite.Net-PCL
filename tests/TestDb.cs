@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
+using PCLStorage;
 using SQLite.Net.Attributes;
 
 #if __WIN32__
@@ -134,7 +136,23 @@ namespace SQLite.Net.Tests
     {
         public static string GetTempFileName()
         {
-            return Path.GetTempFileName();
+            IFolder rootFolder = FileSystem.Current.LocalStorage;
+            const string tempFolderName = "temp";
+            return rootFolder + Environment.NewLine + tempFolderName + Environment.NewLine + Guid.NewGuid().ToString() + ".db";
+//            var exists = await rootFolder.CheckExistsAsync(tempFolderName);
+//            IFolder tempFolder;
+//            if (exists != ExistenceCheckResult.FolderExists)
+//            {
+//                tempFolder = await rootFolder.CreateFolderAsync(tempFolderName,
+//                    CreationCollisionOption.OpenIfExists);
+//            }
+//            else
+//            {
+//                tempFolder = await rootFolder.GetFolderAsync(tempFolderName);
+//            }
+//            IFile file = await tempFolder.GetFileAsync(new Guid().ToString(),
+//                CreationCollisionOption.FailIfExists);
+//            return file;
         }
     }
 }
