@@ -1442,7 +1442,7 @@ namespace SQLite.Net
 
             if (map.PK != null && map.PK.IsAutoGuid)
             {
-                var prop = objType.GetRuntimeProperty(map.PK.PropertyName);
+                var prop = objType.GetProperty(map.PK.PropertyName);
                 if (prop != null)
                 {
                     if (prop.GetValue(obj, null).Equals(Guid.Empty))

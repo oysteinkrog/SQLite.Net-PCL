@@ -70,7 +70,7 @@ namespace SQLite.Net
             IDictionary<Type, string> extraTypeMappings)
         {
             var clrType = p.ColumnType;
-            var interfaces = clrType.GetTypeInfo().ImplementedInterfaces.ToList();
+            var interfaces = clrType.GetInterfaces().ToList();
 
             string extraMapping;
             if (extraTypeMappings.TryGetValue(clrType, out extraMapping))
@@ -123,7 +123,7 @@ namespace SQLite.Net
             {
                 return "bigint";
             }
-            if (clrType.GetTypeInfo().IsEnum)
+            if (clrType.IsEnum)
             {
                 return "integer";
             }
@@ -169,9 +169,9 @@ namespace SQLite.Net
         [CanBeNull]
         internal static int? MaxStringLength(PropertyInfo p)
         {
-            foreach (var attribute in p.CustomAttributes.Where(a => a.AttributeType == typeof (MaxLengthAttribute)))
+            foreach (var attribute in p.GetCustomAttributes<MaxLengthAttribute>())
             {
-                return (int) attribute.ConstructorArguments[0].Value;
+                return attribute.Value;
             }
             return null;
         }
@@ -184,10 +184,10 @@ namespace SQLite.Net
                 try
                 {
                     if (!attribute.UseProperty)
-                        return Convert.ChangeType(attribute.Value, p.PropertyType);
+                        return Convert.ChangeType(attribute.Value, p.PropertyType, null);
 
                     var obj = Activator.CreateInstance(p.DeclaringType);
-                    return p.GetValue(obj);
+                    return p.GetValue(obj, null);
                 }
                 catch (Exception exception)
                 {
@@ -199,7 +199,7 @@ namespace SQLite.Net
 
         internal static bool IsMarkedNotNull(MemberInfo p)
         {
-            var attrs = p.GetCustomAttributes<NotNullAttribute>(true);
+            var attrs = p.GetCustomAttributes<NotNullAttribute>();
             return attrs.Any();
         }
     }

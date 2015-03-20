@@ -365,7 +365,7 @@ namespace SQLite.Net
                         isqLite3Api.BindText16(stmt, index, ((ISerializable<DateTime>)value).Serialize().ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"), -1, NegativePointer);
                     }
                 }
-                else if (value.GetType().GetTypeInfo().IsEnum)
+                else if (value.GetType().IsEnum)
                 {
                     isqLite3Api.BindInt(stmt, index, Convert.ToInt32(value));
                 }
@@ -400,7 +400,7 @@ namespace SQLite.Net
         [CanBeNull]
         private object ReadCol(IDbStatement stmt, int index, ColType type, Type clrType)
         {
-            var interfaces = clrType.GetTypeInfo().ImplementedInterfaces.ToList();
+            var interfaces = clrType.GetInterfaces();
 
             if (type == ColType.Null)
             {
@@ -485,7 +485,7 @@ namespace SQLite.Net
                 }
                 return Activator.CreateInstance(clrType, value);
             }
-            if (clrType.GetTypeInfo().IsEnum)
+            if (clrType.IsEnum)
             {
                 return _sqlitePlatform.SQLiteApi.ColumnInt(stmt, index);
             }
