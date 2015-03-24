@@ -39,16 +39,16 @@ namespace SQLite.Net
         {
             MappedType = type;
 
-            var tableAttr = type.GetTypeInfo().CustomAttributes.FirstOrDefault(data => data.AttributeType == typeof (TableAttribute));
+            var tableAttr = type.GetCustomAttributes<TableAttribute>().FirstOrDefault();
 
-            TableName = tableAttr != null ? (string) tableAttr.ConstructorArguments.FirstOrDefault().Value : MappedType.Name;
+            TableName = tableAttr != null ? tableAttr.Name : MappedType.Name;
 
             var props = properties;
 
             var cols = new List<Column>();
             foreach (var p in props)
             {
-                var ignore = p.GetCustomAttributes<IgnoreAttribute>(true).Any();
+                var ignore = p.GetCustomAttributes<IgnoreAttribute>().Any();
 
                 if (p.CanWrite && !ignore)
                 {
@@ -136,7 +136,7 @@ namespace SQLite.Net
             public Column(PropertyInfo prop, CreateFlags createFlags = CreateFlags.None)
             {
                 var colAttr =
-                    prop.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault();
+                    prop.GetCustomAttributes<ColumnAttribute>().FirstOrDefault();
 
                 _prop = prop;
                 Name = colAttr == null ? prop.Name : colAttr.Name;
@@ -212,15 +212,14 @@ namespace SQLite.Net
             public void SetValue(object obj, [CanBeNull] object val)
             {
                 var propType = _prop.PropertyType;
-                var typeInfo = propType.GetTypeInfo();
 
-                if (typeInfo.IsGenericType && propType.GetGenericTypeDefinition() == typeof (Nullable<>))
+                if (propType.IsGenericType && propType.GetGenericTypeDefinition() == typeof (Nullable<>))
                 {
-                    var typeCol = propType.GetTypeInfo().GenericTypeArguments;
+                    var typeCol = propType.GetGenericArguments();
                     if (typeCol.Length > 0)
                     {
                         var nullableType = typeCol[0];
-                        var baseType = nullableType.GetTypeInfo().BaseType;
+                        var baseType = nullableType.BaseType;
                         if (baseType == typeof (Enum))
                         {
                             var result = val;
@@ -234,7 +233,7 @@ namespace SQLite.Net
                         }
                     }
                 }
-                else if (typeInfo.BaseType == typeof (Enum))
+                else if (propType.BaseType == typeof (Enum))
                 {
                     _prop.SetValue(obj, Enum.ToObject(propType, val), null);
                 }
