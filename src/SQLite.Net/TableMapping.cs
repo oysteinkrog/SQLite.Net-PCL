@@ -48,7 +48,7 @@ namespace SQLite.Net
             var cols = new List<Column>();
             foreach (var p in props)
             {
-                var ignore = p.GetCustomAttributes<IgnoreAttribute>(true).Any();
+                var ignore = p.IsDefined(typeof(IgnoreAttribute), true);
 
                 if (p.CanWrite && !ignore)
                 {
@@ -223,10 +223,7 @@ namespace SQLite.Net
                         var baseType = nullableType.GetTypeInfo().BaseType;
                         if (baseType == typeof (Enum))
                         {
-                            var result = val;
-                            if (result != null)
-                                result = Enum.ToObject(nullableType, result);
-                            _prop.SetValue(obj, result, null);
+                            SetEnumValue(obj, nullableType, val);
                         }
                         else
                         {
@@ -236,12 +233,20 @@ namespace SQLite.Net
                 }
                 else if (typeInfo.BaseType == typeof (Enum))
                 {
-                    _prop.SetValue(obj, Enum.ToObject(propType, val), null);
+                    SetEnumValue(obj, propType, val);
                 }
                 else
                 {
                     _prop.SetValue(obj, val, null);
                 }
+            }
+
+            private void SetEnumValue(object obj, Type type, object value)
+            {
+                var result = value;
+                if (result != null)
+                    result = Enum.ToObject(type, result);
+                _prop.SetValue(obj, result, null);
             }
 
             [PublicAPI]
