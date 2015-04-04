@@ -57,23 +57,21 @@ namespace SQLite.Net
                 }
             }
             Columns = cols.ToArray();
+            PKs = Columns.Where(col => col.IsPK).ToArray();
             foreach (var c in Columns)
             {
                 if (c.IsAutoInc && c.IsPK)
                 {
                     _autoPk = c;
                 }
-                if (c.IsPK)
-                {
-                    PK = c;
-                }
             }
 
             HasAutoIncPK = _autoPk != null;
 
-            if (PK != null)
+            if (PKs.Length > 0)
             {
-                GetByPrimaryKeySql = string.Format("select * from \"{0}\" where \"{1}\" = ?", TableName, PK.Name);
+                string pksString = string.Join(",", PKs.Select(pk => pk.Name));
+                GetByPrimaryKeySql = string.Format("select * from \"{0}\" where \"{1}\" = ?", TableName, pksString);
             }
             else
             {
@@ -92,7 +90,7 @@ namespace SQLite.Net
         public Column[] Columns { get; private set; }
 
         [PublicAPI]
-        public Column PK { get; private set; }
+        public Column[] PKs { get; private set; }
 
         [PublicAPI]
         public string GetByPrimaryKeySql { get; private set; }

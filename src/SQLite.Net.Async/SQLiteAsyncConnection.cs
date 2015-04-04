@@ -234,18 +234,18 @@ namespace SQLite.Net.Async
         }
 
         [PublicAPI]
-        public Task<int> DeleteAsync<T>([NotNull] object pk, CancellationToken cancellationToken = default (CancellationToken))
+        public Task<int> DeleteAsync<T>([NotNull] Dictionary<string,object> pks, CancellationToken cancellationToken = default (CancellationToken))
         {
-            if (pk == null)
+            if (pks == null)
             {
-                throw new ArgumentNullException("pk");
+                throw new ArgumentNullException("pks");
             }
             return Task.Factory.StartNew(() =>
             {
                 var conn = GetConnection();
                 using (conn.Lock())
                 {
-                    return conn.Delete<T>(pk);
+                    return conn.Delete<T>(pks);
                 }
             }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }

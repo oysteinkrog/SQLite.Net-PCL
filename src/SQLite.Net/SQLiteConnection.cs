@@ -367,7 +367,7 @@ namespace SQLite.Net
         {
             var map = GetMapping(ty, createFlags);
 
-            var query = "create table if not exists \"" + map.TableName + "\"(\n";
+            var query = new StringBuilder("create table if not exists \"").Append(map.TableName).Append("\"( \n");
 
             var mapColumns = map.Columns;
 
@@ -376,12 +376,25 @@ namespace SQLite.Net
                 throw new Exception("Table has no (public) columns");
             }
 
-            var decls = mapColumns.Select(p => Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings));
-            var decl = string.Join(",\n", decls.ToArray());
-            query += decl;
-            query += ")";
+            var PKs = mapColumns.Where(c => c.IsPK).ToList();
 
-            var count = Execute(query);
+            var decls = mapColumns.Select(p => Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings, PKs.Count));
+            var decl = string.Join(",\n", decls.ToArray());
+            query.Append(decl).Append(",\n");
+
+
+            if (PKs.Count > 1)
+            {
+                query.Append("primary key (").Append(string.Join(",", PKs.Select(pk => pk.Name))).Append(")");
+            }
+            else
+            {
+                query.Remove(query.Length - 2, 2);
+            }
+
+            query.Append(")");
+
+            var count = Execute(query.ToString());
 
             if (count == 0)
             {
@@ -535,6 +548,8 @@ namespace SQLite.Net
 
             var toBeAdded = new List<TableMapping.Column>();
 
+            var PKscount = map.Columns.Where(c => c.IsPK).Count();
+
             foreach (var p in map.Columns)
             {
                 var found = false;
@@ -554,8 +569,13 @@ namespace SQLite.Net
 
             foreach (var p in toBeAdded)
             {
+                if (p.IsPK)
+                {
+                    throw new NotSupportedException("The new column may not have a PRIMARY KEY constraint.");
+                }
+
                 var addCol = "alter table \"" + map.TableName + "\" add column " +
-                             Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings);
+                             Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings, PKscount);
                 Execute(addCol);
             }
         }
@@ -1440,9 +1460,16 @@ namespace SQLite.Net
 
             var map = GetMapping(objType);
 
-            if (map.PK != null && map.PK.IsAutoGuid)
+            TableMapping.Column pk = null;
+
+            if (map.PKs != null)
             {
-                var prop = objType.GetRuntimeProperty(map.PK.PropertyName);
+                pk = map.PKs.FirstOrDefault(p => p.IsAutoGuid);
+            }
+
+            if (pk != null)
+            {
+                var prop = objType.GetRuntimeProperty(pk.PropertyName);
                 if (prop != null)
                 {
                     if (prop.GetValue(obj, null).Equals(Guid.Empty))
@@ -1548,25 +1575,23 @@ namespace SQLite.Net
 
             var map = GetMapping(objType);
 
-            var pk = map.PK;
+            var pks = map.PKs;
 
-            if (pk == null)
+            if (pks == null || pks.Length == 0)
             {
                 throw new NotSupportedException("Cannot update " + map.TableName + ": it has no PK");
             }
 
             var cols = from p in map.Columns
-                where p != pk
+                where !pks.Any(pk => pk == p)
                 select p;
-            var vals = from c in cols
-                select c.GetValue(obj);
-            var ps = new List<object>(vals)
-            {
-                pk.GetValue(obj)
-            };
-            var q = string.Format("update \"{0}\" set {1} where {2} = ? ", map.TableName,
+            var ps = (from c in cols
+                        select c.GetValue(obj)).ToList();
+
+            ps.AddRange(pks.Select(pk=>pk.GetValue(obj)));
+            var q = string.Format("update \"{0}\" set {1} where {2}", map.TableName,
                 string.Join(",", (from c in cols
-                    select "\"" + c.Name + "\" = ? ").ToArray()), pk.Name);
+                                  select "\"" + c.Name + "\" = ? ").ToArray()), string.Join(" and ", pks.Select(pk => "\"" + pk.Name + "\" = ? ")));
             try
             {
                 rowsAffected = Execute(q, ps.ToArray());
@@ -1631,13 +1656,15 @@ namespace SQLite.Net
         public int Delete(object objectToDelete)
         {
             var map = GetMapping(objectToDelete.GetType());
-            var pk = map.PK;
-            if (pk == null)
+            var pks = map.PKs;
+            if (pks == null || pks.Length == 0)
             {
                 throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
             }
-            var q = string.Format("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pk.Name);
-            return Execute(q, pk.GetValue(objectToDelete));
+            var q = string.Format("delete from \"{0}\" where {1}", map.TableName, string.Join(" and ", pks.Select(pk => "\"" + pk.Name + "\" = ? ")));
+            var ps = (from pk in pks
+                      select pk.GetValue(objectToDelete)).ToArray();
+            return Execute(q, ps);
         }
 
         /// <summary>
@@ -1653,16 +1680,22 @@ namespace SQLite.Net
         ///     The type of object.
         /// </typeparam>
         [PublicAPI]
-        public int Delete<T>(object primaryKey)
+        public int Delete<T>(Dictionary<string, object> PKs)
         {
             var map = GetMapping(typeof (T));
-            var pk = map.PK;
-            if (pk == null)
+            var pks = map.PKs;
+            if (pks == null || pks.Length == 0)
             {
                 throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
             }
-            var q = string.Format("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pk.Name);
-            return Execute(q, primaryKey);
+            if (PKs.Keys.Except(pks.Select(p => p.Name)).Count() > 0)
+            {
+                throw new NotSupportedException("Cannot delete " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
+            }
+            var q = string.Format("delete from \"{0}\" where {1}", map.TableName, string.Join(" and ", PKs.Keys.Select(pk => "\"" + pk + "\" = ? ")));
+            var ps = (from pk in PKs.Values
+                      select pk).ToArray();
+            return Execute(q, ps);
         }
 
         /// <summary>

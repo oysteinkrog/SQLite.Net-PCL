@@ -28,7 +28,7 @@ namespace SQLite.Net.Tests
             TableMapping mapping = db.GetMapping<Derived>();
 
             Assert.AreEqual(3, mapping.Columns.Length);
-            Assert.AreEqual("Id", mapping.PK.Name);
+            Assert.AreEqual("Id", mapping.PKs[0].Name);
         }
     }
 }
