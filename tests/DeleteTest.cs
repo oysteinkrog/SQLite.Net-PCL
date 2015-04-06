@@ -118,10 +118,7 @@ namespace SQLite.Net.Tests
         {
             var db = CreateDb();
 
-            var pks = new Dictionary<string, object>();
-            pks.Add("Id", 348597);
-
-            var r = db.Delete<TestTable>(pks);
+            var r = db.Delete<TestTable>(348597);
 
             Assert.AreEqual(0, r);
             Assert.AreEqual(Count, db.Table<TestTable>().Count());
@@ -132,10 +129,7 @@ namespace SQLite.Net.Tests
         {
             var db = CreateDb();
 
-            var pks = new Dictionary<string, object>();
-            pks.Add("Id", 1);
-
-            var r = db.Delete<TestTable>(pks);
+            var r = db.Delete<TestTable>(1);
 
             Assert.AreEqual(1, r);
             Assert.AreEqual(Count - 1, db.Table<TestTable>().Count());

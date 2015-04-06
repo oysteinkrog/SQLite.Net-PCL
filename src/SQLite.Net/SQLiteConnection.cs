@@ -814,7 +814,7 @@ namespace SQLite.Net
         ///     the given type have a designated PrimaryKey (using the PrimaryKeyAttribute).
         /// </summary>
         /// <param name="pk">
-        ///     The primary key.
+        ///     The primary key. Needs to be Dictionary<string, object> if table has composite PK.
         /// </param>
         /// <returns>
         ///     The object with the given primary key. Throws a not found exception
@@ -824,7 +824,28 @@ namespace SQLite.Net
         public T Get<T>(object pk) where T : class
         {
             var map = GetMapping(typeof (T));
-            return Query<T>(map.GetByPrimaryKeySql, pk).First();
+            if (map.HasCompositePK)
+            {
+                IDictionary<string, object> PKs = pk as Dictionary<string, object>;
+                if (PKs == null)
+                {
+                    throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
+                }
+                var pks = map.PKs;
+                if (pks == null || pks.Length == 0)
+                {
+                    throw new NotSupportedException("Cannot get from  " + map.TableName + ": it has no PK");
+                }
+                if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
+                {
+                    throw new NotSupportedException("Cannot get from " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
+                }
+                return Query<T>(map.GetByPrimaryKeySql, PKs.Values.ToArray()).First();
+            }
+            else
+            {
+                return Query<T>(map.GetByPrimaryKeySql, pk).First();
+            }
         }
 
         /// <summary>
@@ -850,7 +871,7 @@ namespace SQLite.Net
         ///     the given type have a designated PrimaryKey (using the PrimaryKeyAttribute).
         /// </summary>
         /// <param name="pk">
-        ///     The primary key.
+        ///     The primary key. Needs to be Dictionary<string, object> if table has composite PK.
         /// </param>
         /// <returns>
         ///     The object with the given primary key or null
@@ -859,8 +880,29 @@ namespace SQLite.Net
         [PublicAPI]
         public T Find<T>(object pk) where T : class
         {
-            var map = GetMapping(typeof (T));
-            return Query<T>(map.GetByPrimaryKeySql, pk).FirstOrDefault();
+            var map = GetMapping(typeof(T));
+            if (map.HasCompositePK)
+            {
+                IDictionary<string, object> PKs = pk as Dictionary<string, object>;
+                if (PKs == null)
+                {
+                    throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
+                }
+                var pks = map.PKs;
+                if (pks == null || pks.Length == 0)
+                {
+                    throw new NotSupportedException("Cannot find in  " + map.TableName + ": it has no PK");
+                }
+                if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
+                {
+                    throw new NotSupportedException("Cannot find in " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
+                }
+                return Query<T>(map.GetByPrimaryKeySql, PKs.Values.ToArray()).FirstOrDefault();
+            }
+            else
+            {
+                return Query<T>(map.GetByPrimaryKeySql, pk).FirstOrDefault();
+            }
         }
 
         /// <summary>
@@ -889,7 +931,7 @@ namespace SQLite.Net
         ///     the given type have a designated PrimaryKey (using the PrimaryKeyAttribute).
         /// </summary>
         /// <param name="pk">
-        ///     The primary key.
+        ///     The primary key. Needs to be Dictionary<string, object> if table has composite PK.
         /// </param>
         /// <param name="map">
         ///     The TableMapping used to identify the object type.
@@ -901,7 +943,28 @@ namespace SQLite.Net
         [PublicAPI]
         public object Find(object pk, TableMapping map)
         {
-            return Query(map, map.GetByPrimaryKeySql, pk).FirstOrDefault();
+            if (map.HasCompositePK)
+            {
+                IDictionary<string, object> PKs = pk as Dictionary<string, object>;
+                if (PKs == null)
+                {
+                    throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
+                }
+                var pks = map.PKs;
+                if (pks == null || pks.Length == 0)
+                {
+                    throw new NotSupportedException("Cannot find in  " + map.TableName + ": it has no PK");
+                }
+                if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
+                {
+                    throw new NotSupportedException("Cannot find in " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
+                }
+                return Query(map, map.GetByPrimaryKeySql, PKs.Values.ToArray()).FirstOrDefault();
+            }
+            else
+            {
+                return Query(map, map.GetByPrimaryKeySql, pk).FirstOrDefault();
+            }
         }
 
         /// <summary>
@@ -1671,7 +1734,7 @@ namespace SQLite.Net
         ///     Deletes the object with the specified primary key.
         /// </summary>
         /// <param name="primaryKey">
-        ///     The primary key of the object to delete.
+        ///     The primary key of the object to delete. Needs to be Dictionary<string, object> if table has composite PK.
         /// </param>
         /// <returns>
         ///     The number of objects deleted.
@@ -1680,7 +1743,7 @@ namespace SQLite.Net
         ///     The type of object.
         /// </typeparam>
         [PublicAPI]
-        public int Delete<T>(Dictionary<string, object> PKs)
+        public int Delete<T>(object primaryKey)
         {
             var map = GetMapping(typeof (T));
             var pks = map.PKs;
@@ -1688,14 +1751,28 @@ namespace SQLite.Net
             {
                 throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
             }
-            if (PKs.Keys.Except(pks.Select(p => p.Name)).Count() > 0)
+
+            if (map.HasCompositePK)
             {
-                throw new NotSupportedException("Cannot delete " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
+                IDictionary<string, object> PKs = primaryKey as Dictionary<string, object>;
+                if (PKs == null)
+                {
+                    throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
+                }
+                if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
+                {
+                    throw new NotSupportedException("Cannot delete " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
+                }
+                var q = string.Format("delete from \"{0}\" where {1}", map.TableName, string.Join(" and ", PKs.Keys.Select(pk => "\"" + pk + "\" = ? ")));
+                var ps = (from pk in PKs.Values
+                          select pk).ToArray();
+                return Execute(q, ps);
             }
-            var q = string.Format("delete from \"{0}\" where {1}", map.TableName, string.Join(" and ", PKs.Keys.Select(pk => "\"" + pk + "\" = ? ")));
-            var ps = (from pk in PKs.Values
-                      select pk).ToArray();
-            return Execute(q, ps);
+            else
+            {
+                var q = string.Format("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pks.FirstOrDefault().Name);
+                return Execute(q, primaryKey);
+            }
         }
 
         /// <summary>

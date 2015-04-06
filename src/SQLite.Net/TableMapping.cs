@@ -58,20 +58,34 @@ namespace SQLite.Net
             }
             Columns = cols.ToArray();
             PKs = Columns.Where(col => col.IsPK).ToArray();
-            foreach (var c in Columns)
+
+            if (PKs.Length > 1)
             {
-                if (c.IsAutoInc && c.IsPK)
-                {
-                    _autoPk = c;
-                }
+                HasCompositePK = true;
             }
 
-            HasAutoIncPK = _autoPk != null;
-
-            if (PKs.Length > 0)
+            if (!HasCompositePK)
             {
-                string pksString = string.Join(",", PKs.Select(pk => pk.Name));
-                GetByPrimaryKeySql = string.Format("select * from \"{0}\" where \"{1}\" = ?", TableName, pksString);
+                foreach (var c in Columns)
+                {
+                    if (c.IsAutoInc && c.IsPK)
+                    {
+                        _autoPk = c;
+                    }
+                }
+
+                HasAutoIncPK = _autoPk != null;
+            }
+
+            if (PKs.Length > 1)
+            {
+                string pksString = string.Join(" and ", PKs.Select(pk => "\"" + pk.Name + "\" = ? "));
+                GetByPrimaryKeySql = string.Format("select * from \"{0}\" where {1}", TableName, pksString);
+            }
+            else if (PKs.Length == 1)
+            {
+                string pkString = PKs.FirstOrDefault().Name;
+                GetByPrimaryKeySql = string.Format("select * from \"{0}\" where \"{1}\" = ?", TableName, pkString);
             }
             else
             {
@@ -97,6 +111,9 @@ namespace SQLite.Net
 
         [PublicAPI]
         public bool HasAutoIncPK { get; private set; }
+
+        [PublicAPI]
+        public bool HasCompositePK { get; private set; }
 
         [PublicAPI]
         public Column[] InsertColumns
