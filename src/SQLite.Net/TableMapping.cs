@@ -34,6 +34,7 @@ namespace SQLite.Net
     {
         private readonly Column _autoPk;
         private Column[] _insertColumns;
+        private Column _pk;
 
         [PublicAPI]
         public TableMapping(Type type, IEnumerable<PropertyInfo> properties, CreateFlags createFlags = CreateFlags.None)
@@ -72,6 +73,11 @@ namespace SQLite.Net
                     {
                         _autoPk = c;
                     }
+
+                    if (c.IsPK)
+                    {
+                        _pk = c;
+                    }
                 }
 
                 HasAutoIncPK = _autoPk != null;
@@ -102,6 +108,22 @@ namespace SQLite.Net
 
         [PublicAPI]
         public Column[] Columns { get; private set; }
+
+        [PublicAPI]
+        public Column PK
+        {
+            get
+            {
+                if (HasCompositePK)
+                {
+                    throw new NotSupportedException("Table has a composite primary key. Use PKs property instead.");
+                }
+                else
+                {
+                    return _pk;
+                }
+            }
+        }
 
         [PublicAPI]
         public Column[] PKs { get; private set; }

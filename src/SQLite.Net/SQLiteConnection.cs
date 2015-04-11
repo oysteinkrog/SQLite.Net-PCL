@@ -376,23 +376,22 @@ namespace SQLite.Net
                 throw new Exception("Table has no (public) columns");
             }
 
-            var PKs = mapColumns.Where(c => c.IsPK).ToList();
-
-            var decls = mapColumns.Select(p => Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings, PKs.Count));
-            var decl = string.Join(",\n", decls.ToArray());
-            query.Append(decl).Append(",\n");
-
-
-            if (PKs.Count > 1)
+            if (map.HasCompositePK)
             {
+                var PKs = mapColumns.Where(c => c.IsPK).ToList();
+
+                var decls = mapColumns.Select(p => Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings, map.HasCompositePK));
+                var decl = string.Join(",\n", decls.ToArray());
+                query.Append(decl).Append(",\n");
                 query.Append("primary key (").Append(string.Join(",", PKs.Select(pk => pk.Name))).Append(")");
+                query.Append(")");
             }
             else
             {
-                query.Remove(query.Length - 2, 2);
+                var decls = mapColumns.Select(p => Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings));
+                var decl = string.Join(",\n", decls.ToArray());
+                query.Append(decl).Append(")");
             }
-
-            query.Append(")");
 
             var count = Execute(query.ToString());
 
@@ -575,7 +574,7 @@ namespace SQLite.Net
                 }
 
                 var addCol = "alter table \"" + map.TableName + "\" add column " +
-                             Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings, PKscount);
+                             Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings, map.HasCompositePK);
                 Execute(addCol);
             }
         }
@@ -832,10 +831,6 @@ namespace SQLite.Net
                     throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
                 }
                 var pks = map.PKs;
-                if (pks == null || pks.Length == 0)
-                {
-                    throw new NotSupportedException("Cannot get from  " + map.TableName + ": it has no PK");
-                }
                 if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
                 {
                     throw new NotSupportedException("Cannot get from " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
@@ -889,10 +884,6 @@ namespace SQLite.Net
                     throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
                 }
                 var pks = map.PKs;
-                if (pks == null || pks.Length == 0)
-                {
-                    throw new NotSupportedException("Cannot find in  " + map.TableName + ": it has no PK");
-                }
                 if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
                 {
                     throw new NotSupportedException("Cannot find in " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
@@ -951,10 +942,6 @@ namespace SQLite.Net
                     throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
                 }
                 var pks = map.PKs;
-                if (pks == null || pks.Length == 0)
-                {
-                    throw new NotSupportedException("Cannot find in  " + map.TableName + ": it has no PK");
-                }
                 if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
                 {
                     throw new NotSupportedException("Cannot find in " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
@@ -1522,12 +1509,18 @@ namespace SQLite.Net
             }
 
             var map = GetMapping(objType);
-
             TableMapping.Column pk = null;
 
-            if (map.PKs != null)
+            if (map.HasCompositePK)
             {
                 pk = map.PKs.FirstOrDefault(p => p.IsAutoGuid);
+            }
+            else
+            {
+                if (map.PK != null && map.PK.IsAutoGuid)
+                {
+                    pk = map.PK;
+                }
             }
 
             if (pk != null)
@@ -1637,27 +1630,57 @@ namespace SQLite.Net
             }
 
             var map = GetMapping(objType);
+            string q = null;
+            object[] ps = null;
 
-            var pks = map.PKs;
-
-            if (pks == null || pks.Length == 0)
+            if (map.HasCompositePK)
             {
-                throw new NotSupportedException("Cannot update " + map.TableName + ": it has no PK");
+                var pks = map.PKs;
+                var cols = from p in map.Columns
+                           where !pks.Any(pk => pk == p)
+                           select p;
+
+                var pslist = (from c in cols
+                              select c.GetValue(obj)).ToList();
+
+                pslist.AddRange(pks.Select(pk => pk.GetValue(obj)));
+
+                q = string.Format("update \"{0}\" set {1} where {2}", map.TableName,
+                        string.Join(",", (from c in cols
+                                          select "\"" + c.Name + "\" = ? ").ToArray()), string.Join(" and ", pks.Select(pk => "\"" + pk.Name + "\" = ? ")));
+
+                ps = pslist.ToArray();
+            }
+            else
+            {
+                var pk = map.PK;
+
+                if (pk == null)
+                {
+                    throw new NotSupportedException("Cannot update " + map.TableName + ": it has no PK");
+                }
+
+                var cols = from p in map.Columns
+                           where p != pk
+                           select p;
+
+                var vals = from c in cols
+                           select c.GetValue(obj);
+                var pslist = new List<object>(vals)
+                {
+                    pk.GetValue(obj)
+                };
+
+                q = string.Format("update \"{0}\" set {1} where {2} = ? ", map.TableName,
+                        string.Join(",", (from c in cols
+                        select "\"" + c.Name + "\" = ? ").ToArray()), pk.Name);
+
+                ps = pslist.ToArray();
             }
 
-            var cols = from p in map.Columns
-                where !pks.Any(pk => pk == p)
-                select p;
-            var ps = (from c in cols
-                        select c.GetValue(obj)).ToList();
-
-            ps.AddRange(pks.Select(pk=>pk.GetValue(obj)));
-            var q = string.Format("update \"{0}\" set {1} where {2}", map.TableName,
-                string.Join(",", (from c in cols
-                                  select "\"" + c.Name + "\" = ? ").ToArray()), string.Join(" and ", pks.Select(pk => "\"" + pk.Name + "\" = ? ")));
             try
             {
-                rowsAffected = Execute(q, ps.ToArray());
+                rowsAffected = Execute(q, ps);
             }
             catch (SQLiteException ex)
             {
@@ -1719,14 +1742,27 @@ namespace SQLite.Net
         public int Delete(object objectToDelete)
         {
             var map = GetMapping(objectToDelete.GetType());
-            var pks = map.PKs;
-            if (pks == null || pks.Length == 0)
+            string q = null;
+            object[] ps = null;
+
+            if (map.HasCompositePK)
             {
-                throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
-            }
-            var q = string.Format("delete from \"{0}\" where {1}", map.TableName, string.Join(" and ", pks.Select(pk => "\"" + pk.Name + "\" = ? ")));
-            var ps = (from pk in pks
+                var pks = map.PKs;
+                q = string.Format("delete from \"{0}\" where {1}", map.TableName, string.Join(" and ", pks.Select(pk => "\"" + pk.Name + "\" = ? ")));
+                ps = (from pk in pks
                       select pk.GetValue(objectToDelete)).ToArray();
+            }
+            else
+            {
+                var pk = map.PK;
+                if (pk == null)
+                {
+                    throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
+                }
+                q = string.Format("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pk.Name);
+                ps = new object[] { pk.GetValue(objectToDelete) };
+            }
+
             return Execute(q, ps);
         }
 
@@ -1746,14 +1782,10 @@ namespace SQLite.Net
         public int Delete<T>(object primaryKey)
         {
             var map = GetMapping(typeof (T));
-            var pks = map.PKs;
-            if (pks == null || pks.Length == 0)
-            {
-                throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
-            }
 
             if (map.HasCompositePK)
             {
+                var pks = map.PKs;
                 IDictionary<string, object> PKs = primaryKey as Dictionary<string, object>;
                 if (PKs == null)
                 {
@@ -1770,7 +1802,12 @@ namespace SQLite.Net
             }
             else
             {
-                var q = string.Format("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pks.FirstOrDefault().Name);
+                var pk = map.PK;
+                if (pk == null)
+                {
+                    throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
+                }
+                var q = string.Format("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pk.Name);
                 return Execute(q, primaryKey);
             }
         }
