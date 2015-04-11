@@ -164,11 +164,11 @@ namespace SQLite.Net.Tests
         {
             var db = CreateDb();
 
-            var pks = new Dictionary<string, object>();
-            pks.Add("Id", 348597);
-            pks.Add("TestIndex", 348598);
+            var compositePK = new Dictionary<string, object>();
+            compositePK.Add("Id", 348597);
+            compositePK.Add("TestIndex", 348598);
 
-            var r = db.Delete<TestTableCompositeKey>(pks);
+            var r = db.Delete<TestTableCompositeKey>(compositePK);
 
             Assert.AreEqual(0, r);
             Assert.AreEqual(Count, db.Table<TestTableCompositeKey>().Count());
@@ -179,11 +179,11 @@ namespace SQLite.Net.Tests
         {
             var db = CreateDb();
 
-            var pks = new Dictionary<string, object>();
-            pks.Add("Id", 1);
-            pks.Add("TestIndex", 2);
+            var compositePK = new Dictionary<string, object>();
+            compositePK.Add("Id", 1);
+            compositePK.Add("TestIndex", 2);
 
-            var r = db.Delete<TestTableCompositeKey>(pks);
+            var r = db.Delete<TestTableCompositeKey>(compositePK);
 
             Assert.AreEqual(1, r);
             Assert.AreEqual(Count - 1, db.Table<TestTableCompositeKey>().Count());

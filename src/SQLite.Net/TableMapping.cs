@@ -58,9 +58,9 @@ namespace SQLite.Net
                 }
             }
             Columns = cols.ToArray();
-            PKs = Columns.Where(col => col.IsPK).ToArray();
+            CompositePK = Columns.Where(col => col.IsPK).ToArray();
 
-            if (PKs.Length > 1)
+            if (CompositePK.Length > 1)
             {
                 HasCompositePK = true;
             }
@@ -83,14 +83,14 @@ namespace SQLite.Net
                 HasAutoIncPK = _autoPk != null;
             }
 
-            if (PKs.Length > 1)
+            if (CompositePK.Length > 1)
             {
-                string pksString = string.Join(" and ", PKs.Select(pk => "\"" + pk.Name + "\" = ? "));
-                GetByPrimaryKeySql = string.Format("select * from \"{0}\" where {1}", TableName, pksString);
+                string compositePKString = string.Join(" and ", CompositePK.Select(pk => "\"" + pk.Name + "\" = ? "));
+                GetByPrimaryKeySql = string.Format("select * from \"{0}\" where {1}", TableName, compositePKString);
             }
-            else if (PKs.Length == 1)
+            else if (PK != null)
             {
-                string pkString = PKs.FirstOrDefault().Name;
+                string pkString = PK.Name;
                 GetByPrimaryKeySql = string.Format("select * from \"{0}\" where \"{1}\" = ?", TableName, pkString);
             }
             else
@@ -116,7 +116,7 @@ namespace SQLite.Net
             {
                 if (HasCompositePK)
                 {
-                    throw new NotSupportedException("Table has a composite primary key. Use PKs property instead.");
+                    throw new NotSupportedException("Table has a composite primary key. Use CompositePK property instead.");
                 }
                 else
                 {
@@ -126,7 +126,7 @@ namespace SQLite.Net
         }
 
         [PublicAPI]
-        public Column[] PKs { get; private set; }
+        public Column[] CompositePK { get; private set; }
 
         [PublicAPI]
         public string GetByPrimaryKeySql { get; private set; }

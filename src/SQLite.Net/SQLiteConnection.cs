@@ -378,12 +378,12 @@ namespace SQLite.Net
 
             if (map.HasCompositePK)
             {
-                var PKs = mapColumns.Where(c => c.IsPK).ToList();
+                var compositePK = mapColumns.Where(c => c.IsPK).ToList();
 
                 var decls = mapColumns.Select(p => Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings, map.HasCompositePK));
                 var decl = string.Join(",\n", decls.ToArray());
                 query.Append(decl).Append(",\n");
-                query.Append("primary key (").Append(string.Join(",", PKs.Select(pk => pk.Name))).Append(")");
+                query.Append("primary key (").Append(string.Join(",", compositePK.Select(pk => pk.Name))).Append(")");
                 query.Append(")");
             }
             else
@@ -546,8 +546,6 @@ namespace SQLite.Net
             var existingCols = GetTableInfo(map.TableName);
 
             var toBeAdded = new List<TableMapping.Column>();
-
-            var PKscount = map.Columns.Where(c => c.IsPK).Count();
 
             foreach (var p in map.Columns)
             {
@@ -825,17 +823,17 @@ namespace SQLite.Net
             var map = GetMapping(typeof (T));
             if (map.HasCompositePK)
             {
-                IDictionary<string, object> PKs = pk as Dictionary<string, object>;
-                if (PKs == null)
+                IDictionary<string, object> compositePK = pk as Dictionary<string, object>;
+                if (compositePK == null)
                 {
                     throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
                 }
-                var pks = map.PKs;
-                if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
+                var cpk = map.CompositePK;
+                if (compositePK.Keys.Intersect(cpk.Select(p => p.Name)).Count() < cpk.Length)
                 {
-                    throw new NotSupportedException("Cannot get from " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
+                    throw new NotSupportedException("Cannot get from " + map.TableName + ": CompositePK mismatch. Make sure PK names are valid.");
                 }
-                return Query<T>(map.GetByPrimaryKeySql, PKs.Values.ToArray()).First();
+                return Query<T>(map.GetByPrimaryKeySql, compositePK.Values.ToArray()).First();
             }
             else
             {
@@ -878,17 +876,17 @@ namespace SQLite.Net
             var map = GetMapping(typeof(T));
             if (map.HasCompositePK)
             {
-                IDictionary<string, object> PKs = pk as Dictionary<string, object>;
-                if (PKs == null)
+                IDictionary<string, object> compositePK = pk as Dictionary<string, object>;
+                if (compositePK == null)
                 {
                     throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
                 }
-                var pks = map.PKs;
-                if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
+                var cpk = map.CompositePK;
+                if (compositePK.Keys.Intersect(cpk.Select(p => p.Name)).Count() < cpk.Length)
                 {
-                    throw new NotSupportedException("Cannot find in " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
+                    throw new NotSupportedException("Cannot find in " + map.TableName + ": CompositePK mismatch. Make sure PK names are valid.");
                 }
-                return Query<T>(map.GetByPrimaryKeySql, PKs.Values.ToArray()).FirstOrDefault();
+                return Query<T>(map.GetByPrimaryKeySql, compositePK.Values.ToArray()).FirstOrDefault();
             }
             else
             {
@@ -936,17 +934,17 @@ namespace SQLite.Net
         {
             if (map.HasCompositePK)
             {
-                IDictionary<string, object> PKs = pk as Dictionary<string, object>;
-                if (PKs == null)
+                IDictionary<string, object> compositePK = pk as Dictionary<string, object>;
+                if (compositePK == null)
                 {
                     throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
                 }
-                var pks = map.PKs;
-                if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
+                var cpk = map.CompositePK;
+                if (compositePK.Keys.Intersect(cpk.Select(p => p.Name)).Count() < cpk.Length)
                 {
-                    throw new NotSupportedException("Cannot find in " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
+                    throw new NotSupportedException("Cannot find in " + map.TableName + ": CompositePK mismatch. Make sure PK names are valid.");
                 }
-                return Query(map, map.GetByPrimaryKeySql, PKs.Values.ToArray()).FirstOrDefault();
+                return Query(map, map.GetByPrimaryKeySql, compositePK.Values.ToArray()).FirstOrDefault();
             }
             else
             {
@@ -1513,7 +1511,7 @@ namespace SQLite.Net
 
             if (map.HasCompositePK)
             {
-                pk = map.PKs.FirstOrDefault(p => p.IsAutoGuid);
+                pk = map.CompositePK.FirstOrDefault(p => p.IsAutoGuid);
             }
             else
             {
@@ -1635,19 +1633,19 @@ namespace SQLite.Net
 
             if (map.HasCompositePK)
             {
-                var pks = map.PKs;
+                var compositePK = map.CompositePK;
                 var cols = from p in map.Columns
-                           where !pks.Any(pk => pk == p)
+                           where !compositePK.Any(pk => pk == p)
                            select p;
 
                 var pslist = (from c in cols
                               select c.GetValue(obj)).ToList();
 
-                pslist.AddRange(pks.Select(pk => pk.GetValue(obj)));
+                pslist.AddRange(compositePK.Select(pk => pk.GetValue(obj)));
 
                 q = string.Format("update \"{0}\" set {1} where {2}", map.TableName,
                         string.Join(",", (from c in cols
-                                          select "\"" + c.Name + "\" = ? ").ToArray()), string.Join(" and ", pks.Select(pk => "\"" + pk.Name + "\" = ? ")));
+                                          select "\"" + c.Name + "\" = ? ").ToArray()), string.Join(" and ", compositePK.Select(pk => "\"" + pk.Name + "\" = ? ")));
 
                 ps = pslist.ToArray();
             }
@@ -1747,9 +1745,9 @@ namespace SQLite.Net
 
             if (map.HasCompositePK)
             {
-                var pks = map.PKs;
-                q = string.Format("delete from \"{0}\" where {1}", map.TableName, string.Join(" and ", pks.Select(pk => "\"" + pk.Name + "\" = ? ")));
-                ps = (from pk in pks
+                var compositePK = map.CompositePK;
+                q = string.Format("delete from \"{0}\" where {1}", map.TableName, string.Join(" and ", compositePK.Select(pk => "\"" + pk.Name + "\" = ? ")));
+                ps = (from pk in compositePK
                       select pk.GetValue(objectToDelete)).ToArray();
             }
             else
@@ -1785,18 +1783,18 @@ namespace SQLite.Net
 
             if (map.HasCompositePK)
             {
-                var pks = map.PKs;
-                IDictionary<string, object> PKs = primaryKey as Dictionary<string, object>;
-                if (PKs == null)
+                var cpk = map.CompositePK;
+                IDictionary<string, object> compositePK = primaryKey as Dictionary<string, object>;
+                if (compositePK == null)
                 {
                     throw new NotSupportedException(map.TableName + " table has a composite primary key. Make sure primary key is passed in as Dictionary<string, object>.");
                 }
-                if (PKs.Keys.Intersect(pks.Select(p => p.Name)).Count() < pks.Length)
+                if (compositePK.Keys.Intersect(cpk.Select(p => p.Name)).Count() < cpk.Length)
                 {
-                    throw new NotSupportedException("Cannot delete " + map.TableName + ": PKs mismatch. Make sure PK names are valid.");
+                    throw new NotSupportedException("Cannot delete " + map.TableName + ": CompositePK mismatch. Make sure PK names are valid.");
                 }
-                var q = string.Format("delete from \"{0}\" where {1}", map.TableName, string.Join(" and ", PKs.Keys.Select(pk => "\"" + pk + "\" = ? ")));
-                var ps = (from pk in PKs.Values
+                var q = string.Format("delete from \"{0}\" where {1}", map.TableName, string.Join(" and ", compositePK.Keys.Select(pk => "\"" + pk + "\" = ? ")));
+                var ps = (from pk in compositePK.Values
                           select pk).ToArray();
                 return Execute(q, ps);
             }
