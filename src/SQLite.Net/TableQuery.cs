@@ -142,8 +142,22 @@ namespace SQLite.Net
             {
                 throw new NotSupportedException("Must be a predicate");
             }
+            if (_limit != null)
+            {
+                //SQLite provides a limit to deletions so this would be possible to implement in the future
+                //You would need to take care that the correct order was being applied.
+                throw new NotSupportedException("Cannot delete if a limit has been specified");
+            }
+            if (_offset != null)
+            {
+                throw new NotSupportedException("Cannot delete if an offset has been specified");
+            }
             var lambda = (LambdaExpression) predExpr;
             var pred = lambda.Body;
+            if (_where != null)
+            {
+                pred = Expression.AndAlso(pred, _where);
+            }
             var args = new List<object>();
             var w = CompileExpr(pred, args);
             var cmdText = "delete from \"" + Table.TableName + "\"";
@@ -552,7 +566,7 @@ namespace SQLite.Net
                                             expression.NodeType);
         }
 
-        private string GetSqlName(Expression expr)
+        private string GetSqlName(BinaryExpression expr)
         {
             var n = expr.NodeType;
             if (n == ExpressionType.GreaterThan)
@@ -595,6 +609,20 @@ namespace SQLite.Net
             {
                 return "!=";
             }
+            if (n == ExpressionType.Add)
+            {
+                if (expr.Left.Type == typeof(string))
+                {
+                    return "||";
+                }
+                return "+";
+
+            }
+            if (n == ExpressionType.Subtract)
+            {
+                return "-";
+            }
+
             throw new NotSupportedException("Cannot get SQL for: " + n);
         }
 
