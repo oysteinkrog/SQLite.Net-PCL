@@ -24,6 +24,7 @@ using System;
 using System.Threading;
 using JetBrains.Annotations;
 using SQLite.Net.Interop;
+using System.Collections.Generic;
 
 namespace SQLite.Net
 {
@@ -33,7 +34,7 @@ namespace SQLite.Net
 
         [PublicAPI]
         public SQLiteConnectionWithLock([NotNull] ISQLitePlatform sqlitePlatform, [NotNull] SQLiteConnectionString connectionString)
-            : base(sqlitePlatform, connectionString.DatabasePath, connectionString.StoreDateTimeAsTicks, connectionString.Serializer, null, null, connectionString.Resolver) { }
+            : base(sqlitePlatform, connectionString.DatabasePath, connectionString.OpenFlags, connectionString.StoreDateTimeAsTicks, connectionString.Serializer, null, null, connectionString.Resolver) { }
 
         [PublicAPI]
         public IDisposable Lock()
