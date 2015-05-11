@@ -99,14 +99,9 @@ namespace SQLite.Net
         ///     A contract resovler for resolving interfaces to concreate types during object creation
         /// </param>
         [PublicAPI]
-        public SQLiteConnection(
-            ISQLitePlatform sqlitePlatform,
-            string databasePath,
-            bool storeDateTimeAsTicks = true,
-            IBlobSerializer serializer = null,
-            IDictionary<string, TableMapping> tableMappings = null,
-            IDictionary<Type, string> extraTypeMappings = null,
-            IContractResolver resolver = null)
+        public SQLiteConnection([JetBrains.Annotations.NotNull] ISQLitePlatform sqlitePlatform, [JetBrains.Annotations.NotNull] string databasePath,
+            bool storeDateTimeAsTicks = true, [CanBeNull] IBlobSerializer serializer = null, [CanBeNull] IDictionary<string, TableMapping> tableMappings = null,
+            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, [CanBeNull] IContractResolver resolver = null)
             : this(sqlitePlatform, databasePath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create, storeDateTimeAsTicks,
                 serializer, tableMappings, extraTypeMappings, resolver)
         {
@@ -329,7 +324,16 @@ namespace SQLite.Net
         [PublicAPI]
         public int DropTable<T>()
         {
-            var map = GetMapping(typeof (T));
+            return DropTable(typeof (T));
+        }
+
+        /// <summary>
+        ///     Executes a "drop table" on the database.  This is non-recoverable.
+        /// </summary>
+        [PublicAPI]
+        public int DropTable(Type t)
+        {
+            var map = GetMapping(t);
 
             var query = string.Format("drop table if exists \"{0}\"", map.TableName);
 
@@ -1824,7 +1828,24 @@ namespace SQLite.Net
         [PublicAPI]
         public int DeleteAll<T>()
         {
-            var map = GetMapping(typeof (T));
+            return DeleteAll(typeof (T));
+        }
+
+        /// <summary>
+        ///     Deletes all the objects from the specified table.
+        ///     WARNING WARNING: Let me repeat. It deletes ALL the objects from the
+        ///     specified table. Do you really want to do that?
+        /// </summary>
+        /// <returns>
+        ///     The number of objects deleted.
+        /// </returns>
+        /// <typeparam name='T'>
+        ///     The type of objects to delete.
+        /// </typeparam>
+        [PublicAPI]
+        public int DeleteAll(Type t)
+        {
+            var map = GetMapping(t);
             var query = string.Format("delete from \"{0}\"", map.TableName);
             return Execute(query);
         }
