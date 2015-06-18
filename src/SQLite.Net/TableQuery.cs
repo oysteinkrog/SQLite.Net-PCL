@@ -33,7 +33,7 @@ using SQLite.Net.Interop;
 namespace SQLite.Net
 {
 	public class TableQuery<T> : BaseTableQuery, IEnumerable<T>
-        where T: class
+		where T: class
 	{
 		private readonly ISQLitePlatform _sqlitePlatform;
 		private bool _deferred;
@@ -83,7 +83,7 @@ namespace SQLite.Net
 		}
 
 		[PublicAPI]
-        public TableQuery<U> Clone<U>() where U: class
+		public TableQuery<U> Clone<U>() where U: class
 		{
 			return new TableQuery<U>(_sqlitePlatform, Connection, Table)
 			{
@@ -276,7 +276,7 @@ namespace SQLite.Net
 		}
 
 		[PublicAPI]
-        public TableQuery<JoinResult<T, TInner>> Join<TInner, TKey>(
+		public TableQuery<JoinResult<T, TInner>> Join<TInner, TKey>(
 			Expression<Func<T, TKey>> outerKeySelector,
 			Expression<Func<TInner, TKey>> innerKeySelector) where TInner : class
 		{
@@ -284,12 +284,12 @@ namespace SQLite.Net
 		}
 
 		[PublicAPI]
-        public TableQuery<JoinResult<T, TInner>> Join<TInner, TKey>(
+		public TableQuery<JoinResult<T, TInner>> Join<TInner, TKey>(
 			Expression<Func<T, TKey>> outerKeySelector,
 			Expression<Func<TInner, TKey>> innerKeySelector,
 			JoinType joinType) where TInner : class
 		{
-            var q = new TableQuery<JoinResult<T, TInner>>(_sqlitePlatform, Connection, Connection.GetMapping(typeof(JoinResult<T, TInner>)))
+			var q = new TableQuery<JoinResult<T, TInner>>(_sqlitePlatform, Connection, Connection.GetMapping(typeof(JoinResult<T, TInner>)))
 			{
 				_joinOuter = this,
 				_joinOuterKeySelector = outerKeySelector,
@@ -312,54 +312,54 @@ namespace SQLite.Net
 			var cmdBuilder = new StringBuilder();
 			var joinBuilder = new StringBuilder();
 
-            var isJoin = false;
-            if (_joinInner != null && _joinOuter != null)
-            {
-                // the outer join data is always the main table
-                // the inner join data is always the table you want to join with the main table
-                table = _joinOuter.Table;
+			var isJoin = false;
+			if (_joinInner != null && _joinOuter != null)
+			{
+				// the outer join data is always the main table
+				// the inner join data is always the table you want to join with the main table
+				table = _joinOuter.Table;
 
-                var outerArgs = new List<object>();
-                var outerQ = CompileLambdaExpression(_joinOuterKeySelector, outerArgs, _joinOuter.Table);
+				var outerArgs = new List<object>();
+				var outerQ = CompileLambdaExpression(_joinOuterKeySelector, outerArgs, _joinOuter.Table);
 
-                var innerArgs = new List<object>();
-                var innerQ = CompileLambdaExpression(_joinInnerKeySelector, innerArgs, _joinInner.Table);
+				var innerArgs = new List<object>();
+				var innerQ = CompileLambdaExpression(_joinInnerKeySelector, innerArgs, _joinInner.Table);
 
-                if (selectionList == "*")
-                {
-                    var outerList = GenerateSelectionList(_joinOuter.Table.Columns, Orm.AliasOuter);
-                    var innerList = GenerateSelectionList(_joinInner.Table.Columns, Orm.AliasInner);
+				if (selectionList == "*")
+				{
+					var outerList = GenerateSelectionList(_joinOuter.Table.Columns, Orm.AliasOuter);
+					var innerList = GenerateSelectionList(_joinInner.Table.Columns, Orm.AliasInner);
 
-                    selectionList = outerList + ", " + innerList;
-                }
+					selectionList = outerList + ", " + innerList;
+				}
 
-                if (_joinType == JoinType.Inner)
-                    joinBuilder.Append(" inner join ");
-                else
-                    joinBuilder.Append(" outer join ");
-                joinBuilder.AppendFormat("\"{0}\" as {1}", _joinInner.Table.TableName, Orm.AliasInner);
-                joinBuilder.Append(" on ");
-                joinBuilder.AppendFormat("{0}.{1} = {2}.{3}", 
-                    Orm.AliasOuter, outerQ.RawText, 
-                    Orm.AliasInner, innerQ.RawText);
+				if (_joinType == JoinType.Inner)
+					joinBuilder.Append(" inner join ");
+				else
+					joinBuilder.Append(" outer join ");
+				joinBuilder.AppendFormat("\"{0}\" as {1}", _joinInner.Table.TableName, Orm.AliasInner);
+				joinBuilder.Append(" on ");
+				joinBuilder.AppendFormat("{0}.{1} = {2}.{3}", 
+					Orm.AliasOuter, outerQ.RawText, 
+					Orm.AliasInner, innerQ.RawText);
 
-                isJoin = true;
-            }
-            else
-            {
-                if (selectionList == "*")
-                {
-                    selectionList = GenerateSelectionList(table.Columns, null);
-                }
-            }
+				isJoin = true;
+			}
+			else
+			{
+				if (selectionList == "*")
+				{
+					selectionList = GenerateSelectionList(table.Columns, null);
+				}
+			}
 
 			cmdBuilder.Append("select ");
-            cmdBuilder.Append(selectionList);
+			cmdBuilder.Append(selectionList);
 			cmdBuilder.Append(" from ");
-            if (isJoin)
-                cmdBuilder.AppendFormat("\"{0}\" as {1}", table.TableName, Orm.AliasOuter);
-            else
-			    cmdBuilder.AppendFormat("\"{0}\"", table.TableName);
+			if (isJoin)
+				cmdBuilder.AppendFormat("\"{0}\" as {1}", table.TableName, Orm.AliasOuter);
+			else
+				cmdBuilder.AppendFormat("\"{0}\"", table.TableName);
 			cmdBuilder.Append(joinBuilder.ToString());
 
 			var args = new List<object>();
@@ -403,19 +403,19 @@ namespace SQLite.Net
 			return Connection.CreateCommand(cmdBuilder.ToString(), args.ToArray());
 		}
 
-        private string GenerateSelectionList(TableMapping.Column[] columns, string alias)
+		private string GenerateSelectionList(TableMapping.Column[] columns, string alias)
 		{
 			var sb = new StringBuilder();
-            foreach (var column in columns)
+			foreach (var column in columns)
 			{
 				if (sb.Length > 0)
 				{
 					sb.Append(", ");
 				}
-                if (alias != null)
-                    sb.AppendFormat("{0}.{1}", alias, column.Name);
-                else
-                    sb.Append(column.Name);
+				if (alias != null)
+					sb.AppendFormat("{0}.{1}", alias, column.Name);
+				else
+					sb.Append(column.Name);
 			}
 			return sb.ToString();
 		}
@@ -560,7 +560,8 @@ namespace SQLite.Net
 					// This is a column of our table, output just the column name
 					// Need to translate it if that column name is mapped
 					//
-					var columnName = table.FindColumnWithPropertyName(mem.Member.Name).Name;
+					var column = table.FindColumnWithPropertyName(mem.Member.Name);
+					var columnName = column != null ? column.Name : mem.Member.Name;
 					return new CompileResult
 					{
 						RawText = columnName,
@@ -573,6 +574,16 @@ namespace SQLite.Net
 					var r = CompileExpr(mem.Expression, queryArgs, table);
 					if (r.Value == null)
 					{
+						if (r.RawText != null)
+						{
+							var columnNameWithAlias = r.RawText + "." + mem.Member.Name;
+							return new CompileResult
+							{
+								RawText = columnNameWithAlias,
+								CommandText = columnNameWithAlias
+							};
+						}
+
 						throw new NotSupportedException("Member access failed to compile expression");
 					}
 					if (r.CommandText == "?")
