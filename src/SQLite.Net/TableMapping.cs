@@ -32,31 +32,31 @@ namespace SQLite.Net
 {
     public class TableMapping
     {
+        public class TypePropertiesDefinition
+        {
+            public Type Type { get; set; }
+
+            public IEnumerable<PropertyInfo> Properties { get; set; }
+
+            public PropertyInfo JoinProperty { get; set; }
+        }
+
         private readonly Column _autoPk;
         private Column[] _insertColumns;
+
+        public static TableMapping CreateJoinMapping(Type jointype, IList<TypePropertiesDefinition> definitions)
+        {
+            var map = new TableMapping();
+            map.IsJoinTable = true;
+            map.Initialize(jointype, definitions, CreateFlags.None);
+            return map;
+        }
 
         [PublicAPI]
         public TableMapping(Type type, IEnumerable<PropertyInfo> properties, CreateFlags createFlags = CreateFlags.None)
         {
-            MappedType = type;
-
-            var tableAttr = type.GetTypeInfo().GetCustomAttributes<TableAttribute>().FirstOrDefault();
-
-            TableName = tableAttr != null ?  tableAttr.Name : MappedType.Name;
-
-            var props = properties;
-
-            var cols = new List<Column>();
-            foreach (var p in props)
-            {
-                var ignore = p.IsDefined(typeof (IgnoreAttribute), true);
-
-                if (p.CanWrite && !ignore)
-                {
-                    cols.Add(new Column(p, createFlags));
-                }
-            }
-            Columns = cols.ToArray();
+            var definitions = new [] { new TypePropertiesDefinition { Type = type, Properties = properties } };
+            Initialize(type, definitions, createFlags);
             foreach (var c in Columns)
             {
                 if (c.IsAutoInc && c.IsPK)
@@ -82,6 +82,32 @@ namespace SQLite.Net
             }
         }
 
+        private TableMapping() { }
+
+        private void Initialize(Type mappedtype, IList<TypePropertiesDefinition> definitions, CreateFlags createFlags)
+        {
+            MappedType = mappedtype;
+
+            var tableAttr = mappedtype.GetTypeInfo().GetCustomAttributes<TableAttribute>().FirstOrDefault();
+
+            TableName = tableAttr != null ? tableAttr.Name : MappedType.Name;
+
+            var cols = new List<Column>();
+            foreach (var def in definitions)
+            {
+                foreach (var p in def.Properties)
+                {
+                    var ignore = p.IsDefined(typeof(IgnoreAttribute), true);
+
+                    if (p.CanWrite && !ignore)
+                    {
+                        cols.Add(new Column(p, def.JoinProperty, createFlags));
+                    }
+                }
+            }
+            Columns = cols.ToArray();
+        }
+
         [PublicAPI]
         public Type MappedType { get; private set; }
 
@@ -99,6 +125,9 @@ namespace SQLite.Net
 
         [PublicAPI]
         public bool HasAutoIncPK { get; private set; }
+
+        [PublicAPI]
+        public bool IsJoinTable { get; private set; }
 
         [PublicAPI]
         public Column[] InsertColumns
@@ -129,17 +158,27 @@ namespace SQLite.Net
             return exact;
         }
 
+        [PublicAPI]
+        public IList<Column> FindColumns(string columnName)
+        {
+            var list = Columns.Where(c => c.Name == columnName).ToList();
+            return list;
+        }
+
         public class Column
         {
             private readonly PropertyInfo _prop;
+            private readonly PropertyInfo _joinProp;
+
 
             [PublicAPI]
-            public Column(PropertyInfo prop, CreateFlags createFlags = CreateFlags.None)
+            public Column(PropertyInfo prop, PropertyInfo joinProp, CreateFlags createFlags = CreateFlags.None)
             {
                 var colAttr =
                     prop.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault();
 
                 _prop = prop;
+                _joinProp = joinProp;
                 Name = colAttr == null ? prop.Name : colAttr.Name;
                 //If this type is Nullable<T> then Nullable.GetUnderlyingType returns the T, otherwise it returns null, so get the actual type instead
                 ColumnType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
@@ -240,6 +279,16 @@ namespace SQLite.Net
                 {
                     _prop.SetValue(obj, val, null);
                 }
+            }
+
+            [PublicAPI]
+            public void SetJoinValue(object obj, [CanBeNull] object val)
+            {
+                if (_joinProp == null)
+                    throw new InvalidOperationException("Join property not set.");
+
+                var joinObj = _joinProp.GetValue(obj);
+                SetValue(joinObj, val);
             }
 
             private void SetEnumValue(object obj, Type type, object value)

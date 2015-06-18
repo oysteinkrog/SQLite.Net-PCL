@@ -81,13 +81,13 @@ namespace SQLite.Net
         [PublicAPI]
         public IEnumerable<T> ExecuteDeferredQuery<T>()
         {
-            return ExecuteDeferredQuery<T>(_conn.GetMapping(typeof (T)));
+            return ExecuteDeferredQuery<T>(_conn.GetMapping<T>());
         }
 
         [PublicAPI]
         public List<T> ExecuteQuery<T>()
         {
-            return ExecuteDeferredQuery<T>(_conn.GetMapping(typeof (T))).ToList();
+            return ExecuteDeferredQuery<T>(_conn.GetMapping<T>()).ToList();
         }
 
         [PublicAPI]
@@ -123,15 +123,29 @@ namespace SQLite.Net
             {
                 var cols = new TableMapping.Column[_sqlitePlatform.SQLiteApi.ColumnCount(stmt)];
 
+                var seenColumns = new HashSet<TableMapping.Column>();
                 for (var i = 0; i < cols.Length; i++)
                 {
                     var name = _sqlitePlatform.SQLiteApi.ColumnName16(stmt, i);
-                    cols[i] = map.FindColumn(name);
+
+                    var namedColumns = map.FindColumns(name);
+                    if (namedColumns.Count == 1)
+                    {
+                        cols[i] = namedColumns[0];
+                    }
+                    else if (namedColumns.Count > 1)
+                    {
+                        cols[i] = namedColumns.FirstOrDefault(c => !seenColumns.Contains(c));
+                    }
+                    if (cols[i] != null)
+                        seenColumns.Add(cols[i]);
                 }
 
                 while (_sqlitePlatform.SQLiteApi.Step(stmt) == Result.Row)
                 {
-                    var obj = _conn.Resolver.CreateObject(map.MappedType);
+                    var obj = map.IsJoinTable 
+                        ? _conn.Resolver.CreateObject(map.MappedType, new[] { _conn.Resolver }) 
+                        : _conn.Resolver.CreateObject(map.MappedType);
                     for (var i = 0; i < cols.Length; i++)
                     {
                         if (cols[i] == null)
@@ -140,7 +154,14 @@ namespace SQLite.Net
                         }
                         var colType = _sqlitePlatform.SQLiteApi.ColumnType(stmt, i);
                         var val = ReadCol(stmt, i, colType, cols[i].ColumnType);
-                        cols[i].SetValue(obj, val);
+                        if (!map.IsJoinTable)
+                        {
+                            cols[i].SetValue(obj, val);
+                        }
+                        else
+                        {
+                            cols[i].SetJoinValue(obj, val);
+                        }
                     }
                     OnInstanceCreated(obj);
                     yield return (T) obj;

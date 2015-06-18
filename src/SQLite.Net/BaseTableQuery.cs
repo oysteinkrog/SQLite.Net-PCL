@@ -26,6 +26,9 @@ namespace SQLite.Net
     [PublicAPI]
     public abstract class BaseTableQuery
     {
+		[PublicAPI]
+		public TableMapping Table { get; protected set; }
+
         protected class Ordering
         {
             [CanBeNull]
