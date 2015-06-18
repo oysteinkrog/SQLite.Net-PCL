@@ -33,6 +33,7 @@ using SQLite.Net.Interop;
 namespace SQLite.Net
 {
 	public class TableQuery<T> : BaseTableQuery, IEnumerable<T>
+        where T: class
 	{
 		private readonly ISQLitePlatform _sqlitePlatform;
 		private bool _deferred;
@@ -46,7 +47,7 @@ namespace SQLite.Net
 		private List<Ordering> _orderBys;
 		private Expression _where;
 
-		private TableQuery(ISQLitePlatform platformImplementation, SQLiteConnection conn, TableMapping table)
+		protected TableQuery(ISQLitePlatform platformImplementation, SQLiteConnection conn, TableMapping table)
 		{
 			_sqlitePlatform = platformImplementation;
 			Connection = conn;
@@ -82,7 +83,7 @@ namespace SQLite.Net
 		}
 
 		[PublicAPI]
-		public TableQuery<U> Clone<U>()
+        public TableQuery<U> Clone<U>() where U: class
 		{
 			return new TableQuery<U>(_sqlitePlatform, Connection, Table)
 			{
@@ -275,7 +276,7 @@ namespace SQLite.Net
 		}
 
 		[PublicAPI]
-		public TableQuery<JoinResult<T, TInner>> Join<TInner, TKey>(
+        public TableQuery<JoinResult<T, TInner>> Join<TInner, TKey>(
 			Expression<Func<T, TKey>> outerKeySelector,
 			Expression<Func<TInner, TKey>> innerKeySelector) where TInner : class
 		{
@@ -283,12 +284,12 @@ namespace SQLite.Net
 		}
 
 		[PublicAPI]
-		public TableQuery<JoinResult<T, TInner>> Join<TInner, TKey>(
+        public TableQuery<JoinResult<T, TInner>> Join<TInner, TKey>(
 			Expression<Func<T, TKey>> outerKeySelector,
 			Expression<Func<TInner, TKey>> innerKeySelector,
 			JoinType joinType) where TInner : class
 		{
-			var q = new TableQuery<JoinResult<T, TInner>>(_sqlitePlatform, Connection, Connection.GetMapping(typeof(JoinResult<T, TInner>)))
+            var q = new TableQuery<JoinResult<T, TInner>>(_sqlitePlatform, Connection, Connection.GetMapping(typeof(JoinResult<T, TInner>)))
 			{
 				_joinOuter = this,
 				_joinOuterKeySelector = outerKeySelector,

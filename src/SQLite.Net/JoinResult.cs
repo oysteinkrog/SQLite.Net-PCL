@@ -3,16 +3,27 @@
 namespace SQLite.Net
 {
 	[PublicAPI]
-	public class JoinResult<TOuter, TInner>
+	public class JoinResult<TOuter, TInner> 
+        where TInner: class 
+        where TOuter: class
 	{
+        private readonly IContractResolver _resolver;
+        private TInner _inner;
+        private TOuter _outer;
+
         public JoinResult(IContractResolver resolver)
         {
-            Inner = (TInner)resolver.CreateObject(typeof(TInner));
-            Outer = (TOuter)resolver.CreateObject(typeof(TOuter));
+            _resolver = resolver;
         }
 
-		public TInner Inner { get; private set; }
+		public TInner Inner
+        {
+            get { return _inner ?? (_inner = (TInner)_resolver.CreateObject(typeof(TInner))); }
+        }
 
-		public TOuter Outer { get; private set; }
+		public TOuter Outer
+        {
+            get { return _outer ?? (_outer = (TOuter)_resolver.CreateObject(typeof(TOuter))); }
+        }
 	}
 }
