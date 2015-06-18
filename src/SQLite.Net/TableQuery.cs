@@ -312,6 +312,7 @@ namespace SQLite.Net
 			var cmdBuilder = new StringBuilder();
 			var joinBuilder = new StringBuilder();
 
+            var isJoin = false;
             if (_joinInner != null && _joinOuter != null)
             {
                 // the outer join data is always the main table
@@ -326,8 +327,8 @@ namespace SQLite.Net
 
                 if (selectionList == "*")
                 {
-                    var outerList = GenerateSelectionList(_joinOuter.Table, true);
-                    var innerList = GenerateSelectionList(_joinInner.Table, true);
+                    var outerList = GenerateSelectionList(_joinOuter.Table.Columns, Orm.AliasOuter);
+                    var innerList = GenerateSelectionList(_joinInner.Table.Columns, Orm.AliasInner);
 
                     selectionList = outerList + ", " + innerList;
                 }
@@ -336,24 +337,29 @@ namespace SQLite.Net
                     joinBuilder.Append(" inner join ");
                 else
                     joinBuilder.Append(" outer join ");
-                joinBuilder.AppendFormat("\"{0}\"", _joinInner.Table.TableName);
+                joinBuilder.AppendFormat("\"{0}\" as {1}", _joinInner.Table.TableName, Orm.AliasInner);
                 joinBuilder.Append(" on ");
                 joinBuilder.AppendFormat("{0}.{1} = {2}.{3}", 
-                    _joinOuter.Table.TableName, outerQ.RawText, 
-                    _joinInner.Table.TableName, innerQ.RawText);
+                    Orm.AliasOuter, outerQ.RawText, 
+                    Orm.AliasInner, innerQ.RawText);
+
+                isJoin = true;
             }
             else
             {
                 if (selectionList == "*")
                 {
-                    selectionList = GenerateSelectionList(table, false);
+                    selectionList = GenerateSelectionList(table.Columns, null);
                 }
             }
 
 			cmdBuilder.Append("select ");
             cmdBuilder.Append(selectionList);
 			cmdBuilder.Append(" from ");
-			cmdBuilder.AppendFormat("\"{0}\"", table.TableName);
+            if (isJoin)
+                cmdBuilder.AppendFormat("\"{0}\" as {1}", table.TableName, Orm.AliasOuter);
+            else
+			    cmdBuilder.AppendFormat("\"{0}\"", table.TableName);
 			cmdBuilder.Append(joinBuilder.ToString());
 
 			var args = new List<object>();
@@ -397,17 +403,17 @@ namespace SQLite.Net
 			return Connection.CreateCommand(cmdBuilder.ToString(), args.ToArray());
 		}
 
-        private string GenerateSelectionList(TableMapping table, bool forJoins)
+        private string GenerateSelectionList(TableMapping.Column[] columns, string alias)
 		{
 			var sb = new StringBuilder();
-			foreach (var column in table.Columns)
+            foreach (var column in columns)
 			{
 				if (sb.Length > 0)
 				{
 					sb.Append(", ");
 				}
-                if (forJoins)
-                    sb.AppendFormat("{0}.{1}", table.TableName, column.Name);
+                if (alias != null)
+                    sb.AppendFormat("{0}.{1}", alias, column.Name);
                 else
                     sb.Append(column.Name);
 			}

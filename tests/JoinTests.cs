@@ -5,14 +5,19 @@ using System.Linq;
 
 #if __WIN32__
 using SQLitePlatformTest = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
+
 #elif WINDOWS_PHONE
 using SQLitePlatformTest = SQLite.Net.Platform.WindowsPhone8.SQLitePlatformWP8;
+
 #elif __WINRT__
 using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
+
 #elif __IOS__
 using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
+
 #elif __ANDROID__
 using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
+
 #else
 using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
 #endif
@@ -104,6 +109,19 @@ namespace SQLite.Net.Tests
             AssertDepartment(result[1].Inner, 2, "Engineerin", 2);
             AssertEmployee(result[2].Outer, 7, "James", 24, "Houston");
             AssertDepartment(result[2].Inner, 3, "Finance", 7);
+        }
+
+        [Test]
+        public void InnerJoinWithInnerQuery()
+        {
+            var query = _testDb.Table<Employee>().Join<Department, int>(
+                e => e.Id, 
+                d => d.EmployeeId);
+            var result = query.Where(r => r.Inner.Name == "Paul").ToList();
+            Assert.AreEqual(1, result.Count);
+
+            AssertEmployee(result[0].Outer, 1, "Paul", 32, "California");
+            AssertDepartment(result[0].Inner, 1, "IT Billing", 1);
         }
 
         private static void AssertEmployee(Employee employee, int id, string name, int age, string address)

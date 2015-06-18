@@ -311,7 +311,7 @@ namespace SQLite.Net
                 for (var i = 0; i < arguments.Length; ++i)
                 {
                     var typeArg = arguments[i];
-                    var joinProperty = i == 0 ? typeInfo.GetDeclaredProperty("Outer") : typeInfo.GetDeclaredProperty("Inner");
+                    var joinProperty = i == 0 ? typeInfo.GetDeclaredProperty(Orm.AliasOuter) : typeInfo.GetDeclaredProperty(Orm.AliasInner);
                     var def = new TableMapping.TypePropertiesDefinition
                     { 
                         Type = typeArg,
