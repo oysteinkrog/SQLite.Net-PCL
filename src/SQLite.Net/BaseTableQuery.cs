@@ -23,18 +23,18 @@ using JetBrains.Annotations;
 
 namespace SQLite.Net
 {
-    [PublicAPI]
-    public abstract class BaseTableQuery
-    {
-        [PublicAPI]
+	[PublicAPI]
+	public abstract class BaseTableQuery
+	{
+		[PublicAPI]
 		public TableMapping Table { get; protected set; }
 
-        protected class Ordering
-        {
-            [CanBeNull]
-            public string ColumnName { get; set; }
+		protected class Ordering
+		{
+			[CanBeNull]
+			public string ColumnName { get; set; }
 
-            public bool Ascending { get; set; }
-        }
-    }
+			public bool Ascending { get; set; }
+		}
+	}
 }
