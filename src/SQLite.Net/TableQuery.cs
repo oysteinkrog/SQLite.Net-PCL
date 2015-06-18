@@ -415,7 +415,7 @@ namespace SQLite.Net
 				if (alias != null)
 					sb.AppendFormat("{0}.{1}", alias, column.Name);
 				else
-					sb.Append(column.Name);
+                    sb.AppendFormat("\"{0}\"", column.Name);
 			}
 			return sb.ToString();
 		}
