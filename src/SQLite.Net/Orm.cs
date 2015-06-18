@@ -36,6 +36,9 @@ namespace SQLite.Net
         public const string ImplicitPkName = "Id";
         public const string ImplicitIndexSuffix = "Id";
 
+        public const string AliasInner = "Inner";
+        public const string AliasOuter = "Outer";
+
         internal static string SqlDecl(TableMapping.Column p, bool storeDateTimeAsTicks, IBlobSerializer serializer,
             IDictionary<Type, string> extraTypeMappings)
         {

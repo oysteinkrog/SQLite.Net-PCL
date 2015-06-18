@@ -299,8 +299,36 @@ namespace SQLite.Net
 
         private TableMapping CreateAndSetMapping(Type type, CreateFlags createFlags, IDictionary<string, TableMapping> mapTable)
         {
-            var props = Platform.ReflectionService.GetPublicInstanceProperties(type);
-            var map = new TableMapping(type, props, createFlags);
+            var typeInfo = type.GetTypeInfo();
+
+            TableMapping map;
+            if (typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(JoinResult<,>))
+            {
+                var definitions = new List<TableMapping.TypePropertiesDefinition>();
+                var arguments = typeInfo.GenericTypeArguments;
+                if (arguments.Length != 2)
+                    throw new InvalidOperationException("Only two generic parameters are supported.");
+                for (var i = 0; i < arguments.Length; ++i)
+                {
+                    var typeArg = arguments[i];
+                    var joinProperty = i == 0 ? typeInfo.GetDeclaredProperty(Orm.AliasOuter) : typeInfo.GetDeclaredProperty(Orm.AliasInner);
+                    var def = new TableMapping.TypePropertiesDefinition
+                    { 
+                        Type = typeArg,
+                        Properties = Platform.ReflectionService.GetPublicInstanceProperties(typeArg),
+                        JoinProperty = joinProperty
+                    };
+                    definitions.Add(def);
+                }
+
+                map = TableMapping.CreateJoinMapping(type, definitions);
+            }
+            else
+            {
+                var props = Platform.ReflectionService.GetPublicInstanceProperties(type);
+                map = new TableMapping(type, props, createFlags);
+            }
+
             mapTable[type.FullName] = map;
             return map;
         }
