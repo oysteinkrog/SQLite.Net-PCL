@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{BFF4B373-2844-40AD-8994-2BA5AC42AEE0}</ProjectGuid>
+    <ProjectGuid>{8EA10208-DC51-48A1-A0FE-726FEE55DE79}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SQLite.Net.Tests.OSX</RootNamespace>

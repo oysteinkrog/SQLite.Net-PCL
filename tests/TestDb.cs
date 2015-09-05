@@ -124,7 +124,7 @@ namespace SQLite.Net.Tests
     {
         public TestDb(bool storeDateTimeAsTicks = true, IContractResolver resolver = null)
             : base(
-                new SQLitePlatformTest(), TestPath.GetTempFileName(), storeDateTimeAsTicks, null,
+                new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase(), storeDateTimeAsTicks, null,
                 extraTypeMappings: null,
                 resolver: resolver)
 		{
@@ -134,11 +134,12 @@ namespace SQLite.Net.Tests
 
     public class TestPath
     {
-        public static string GetTempFileName()
+        public static string CreateTemporaryDatabase(string fileName = null)
         {
-            IFolder rootFolder = FileSystem.Current.LocalStorage;
-            const string tempFolderName = "temp";
-            return rootFolder + Environment.NewLine + tempFolderName + Environment.NewLine + Guid.NewGuid().ToString() + ".db";
+            var desiredName = fileName ?? CreateDefaultTempFilename() + ".db";   
+            IFolder tempFolder = FileSystem.Current.GetFolderFromPathAsync("temp").Result;
+            return tempFolder.CreateFileAsync(desiredName, CreationCollisionOption.FailIfExists).Result.Path;
+
 //            var exists = await rootFolder.CheckExistsAsync(tempFolderName);
 //            IFolder tempFolder;
 //            if (exists != ExistenceCheckResult.FolderExists)
@@ -153,6 +154,11 @@ namespace SQLite.Net.Tests
 //            IFile file = await tempFolder.GetFileAsync(new Guid().ToString(),
 //                CreationCollisionOption.FailIfExists);
 //            return file;
+        }
+
+        public static Guid CreateDefaultTempFilename()
+        {
+            return Guid.NewGuid();
         }
     }
 }
