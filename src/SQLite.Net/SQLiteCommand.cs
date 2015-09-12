@@ -1,17 +1,17 @@
 ﻿//
 // Copyright (c) 2012 Krueger Systems, Inc.
 // Copyright (c) 2013 Øystein Krog (oystein.krog@gmail.com)
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -387,6 +387,22 @@ namespace SQLite.Net
                 {
                     isqLite3Api.BindText16(stmt, index, ((ISerializable<Guid>) value).Serialize().ToString(), 72, NegativePointer);
                 }
+                else if (value is Uri)
+                {
+                    isqLite3Api.BindText16(stmt, index, ((Uri) value).ToString(), -1, NegativePointer);
+                }
+                else if (value is ISerializable<Uri>)
+                {
+                    isqLite3Api.BindText16(stmt, index, ((ISerializable<Uri>) value).Serialize().ToString(), -1, NegativePointer);
+                }
+                else if (value is UriBuilder)
+                {
+                    isqLite3Api.BindText16(stmt, index, ((UriBuilder) value).ToString(), -1, NegativePointer);
+                }
+                else if (value is ISerializable<UriBuilder>)
+                {
+                    isqLite3Api.BindText16(stmt, index, ((ISerializable<UriBuilder>) value).Serialize().ToString(), -1, NegativePointer);
+                }
                 else if (serializer != null && serializer.CanDeserialize(value.GetType()))
                 {
                     var bytes = serializer.Serialize(value);
@@ -571,6 +587,24 @@ namespace SQLite.Net
             {
                 var value = new Guid(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index));
                 return _conn.Resolver.CreateObject(clrType, new object[] {value});
+            }
+            else if (clrType == typeof(Uri))
+            {
+                return new Uri(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index));
+            }
+            if (interfaces.Contains(typeof(ISerializable<Uri>)))
+            {
+                var value = new Uri(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index));
+                return _conn.Resolver.CreateObject(clrType, new object[] { value });
+            }
+            else if (clrType == typeof(UriBuilder))
+            {
+                return new UriBuilder(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index));
+            }
+            if (interfaces.Contains(typeof(ISerializable<UriBuilder>)))
+            {
+                var value = new UriBuilder(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index));
+                return _conn.Resolver.CreateObject(clrType, new object[] { value });
             }
             if (_conn.Serializer != null && _conn.Serializer.CanDeserialize(clrType))
             {

@@ -143,6 +143,20 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\SQLite.Net.Async\SQLite.Net.Async.csproj">
+      <Project>{3ab34e91-8e1a-442f-8e66-2494b371a890}</Project>
+      <Name>SQLite.Net.Async</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\SQLite.Net.Platform.WinRT\SQLite.Net.Platform.WinRT.csproj">
+      <Project>{6891e212-aeee-4763-ac6f-bd7213c13890}</Project>
+      <Name>SQLite.Net.Platform.WinRT</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\SQLite.Net\SQLite.Net.csproj">
+      <Project>{4971D437-0694-4297-A8CC-146CE08C3BD9}</Project>
+      <Name>SQLite.Net</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\win8\Microsoft.Threading.Tasks.dll</HintPath>
       <Private>True</Private>
@@ -163,20 +177,6 @@
       <HintPath>..\..\packages\PCLStorage.1.0.2\lib\portable-win8+wpa81\PCLStorage.Abstractions.dll</HintPath>
       <Private>True</Private>
     </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\SQLite.Net.Async\SQLite.Net.Async.csproj">
-      <Project>{3ab34e91-8e1a-442f-8e66-2494b371a890}</Project>
-      <Name>SQLite.Net.Async</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\src\SQLite.Net.Platform.WinRT\SQLite.Net.Platform.WinRT.csproj">
-      <Project>{6891e212-aeee-4763-ac6f-bd7213c13890}</Project>
-      <Name>SQLite.Net.Platform.WinRT</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\src\SQLite.Net\SQLite.Net.csproj">
-      <Project>{4971D437-0694-4297-A8CC-146CE08C3BD9}</Project>
-      <Name>SQLite.Net</Name>
-    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '12.0' ">
     <VisualStudioVersion>12.0</VisualStudioVersion>
