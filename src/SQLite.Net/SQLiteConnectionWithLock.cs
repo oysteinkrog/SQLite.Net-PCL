@@ -47,14 +47,29 @@ namespace SQLite.Net
             return new LockWrapper(_lockPoint);
         }
 
+		[PublicAPI]
+		public bool IsLocked
+		{
+			get
+			{
+				if (Monitor.TryEnter(_lockPoint))
+				{
+					Monitor.Exit(_lockPoint);
+					return false;
+				}
+
+				return true;
+			}
+		}
+
         private class LockWrapper : IDisposable
         {
             private readonly object _lockPoint;
 
-            public LockWrapper([NotNull] object lockPoint)
+			public LockWrapper([NotNull] object lockPoint)
             {
                 _lockPoint = lockPoint;
-                Monitor.Enter(_lockPoint);
+				Monitor.Enter(_lockPoint);
             }
 
             public void Dispose()
