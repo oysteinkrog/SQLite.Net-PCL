@@ -505,6 +505,30 @@ namespace SQLite.Net.Async
             }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
 
+		[PublicAPI]
+		public async Task RunInTransactionAsync([NotNull] Func<SQLiteConnection, Task> task, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (task == null)
+			{
+				throw new ArgumentNullException("task");
+			}
+			await Task.Factory.StartNew (async () => {
+				cancellationToken.ThrowIfCancellationRequested ();
+				var conn = GetConnection ();
+				using (conn.Lock ()) {
+					cancellationToken.ThrowIfCancellationRequested ();
+					conn.BeginTransaction ();
+					try {
+						await task (conn);
+						conn.Commit ();
+					} catch (Exception) {
+						conn.Rollback ();
+						throw;
+					}
+				}
+			}, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default).Unwrap ();
+		}
+
         [PublicAPI]
         public AsyncTableQuery<T> Table<T>()
             where T : class

@@ -1041,6 +1041,45 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
+        public async Task TestRunTaskInTransactionAsync()
+        {
+            // connect...
+            string path = null;
+            SQLiteAsyncConnection conn = GetConnection(ref path);
+            await conn.CreateTableAsync<Customer>();
+            bool transactionCompleted = false;   
+
+            // run...
+            var customer = new Customer();
+            await conn.RunInTransactionAsync(async c =>
+            {
+                // insert...
+                customer.FirstName = "foo";
+                customer.LastName = "bar";
+                customer.Email = Guid.NewGuid().ToString();
+                c.Insert(customer);
+
+				await Task.Delay(1000);
+
+				// delete it again...
+				c.Execute("delete from customer where id=?", customer.Id);
+
+                // set completion flag
+                transactionCompleted = true;
+            });
+
+            // check...
+            Assert.IsTrue(transactionCompleted);
+            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            {
+                // load it back and check - should be deleted...
+                List<Customer> loaded = check.Table<Customer>().Where(v => v.Id == customer.Id).ToList();
+                Assert.AreEqual(0, loaded.Count);
+            }
+        }
+
+
+        [Test]
         public async Task TestTableAsync()
         {
             // connect...
