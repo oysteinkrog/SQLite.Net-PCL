@@ -99,6 +99,7 @@
     <Compile Include="Attributes\IndexedAttribute.cs" />
     <Compile Include="Attributes\MaxLengthAttribute.cs" />
     <Compile Include="Attributes\PrimaryKeyAttribute.cs" />
+    <Compile Include="ReadOnlyQueryCache.cs" />
     <Compile Include="SQLiteException.cs" />
     <Compile Include="SQLiteCommand.cs" />
     <Compile Include="SQLiteConnection.cs" />
