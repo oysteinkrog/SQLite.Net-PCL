@@ -146,7 +146,7 @@ namespace SQLite.Net
 	    [PublicAPI]
         public SQLiteConnection([JetBrains.Annotations.NotNull] ISQLitePlatform sqlitePlatform, string databasePath, SQLiteOpenFlags openFlags,
             bool storeDateTimeAsTicks = true, [CanBeNull] IBlobSerializer serializer = null, [CanBeNull] IDictionary<string, TableMapping> tableMappings = null,
-            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, IContractResolver resolver = null, bool readOnlyCaching = true)
+            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, IContractResolver resolver = null, bool readOnlyCaching = false)
         {
             if (sqlitePlatform == null)
             {

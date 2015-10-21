@@ -38,7 +38,7 @@ namespace SQLite.Net
                                         [NotNull] SQLiteConnectionString connectionString, 
                                         IDictionary<string, TableMapping> tableMappings = null, 
                                         IDictionary<Type, string> extraTypeMappings = null,
-                                        bool readOnlyCaching = true
+                                        bool readOnlyCaching = false
                                         )
             : base(sqlitePlatform, connectionString.DatabasePath, connectionString.OpenFlags, connectionString.StoreDateTimeAsTicks, connectionString.Serializer, tableMappings, extraTypeMappings, connectionString.Resolver, readOnlyCaching) { }
 
