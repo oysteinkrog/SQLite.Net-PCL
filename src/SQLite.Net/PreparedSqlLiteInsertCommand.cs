@@ -67,6 +67,15 @@ namespace SQLite.Net
         public int ExecuteNonQuery(object[] source)
         {
             Connection.TraceListener.WriteLine("Executing: {0}", CommandText);
+            if (Connection.ReadOnlyCaching)
+            {
+                var commandString = this.ToString().ToLower();
+                if (commandString.StartsWith("insert") || commandString.StartsWith("update") || commandString.StartsWith("delete") ||
+                    commandString.StartsWith("create") || commandString.StartsWith("alter") || commandString.StartsWith("drop"))
+                {
+                    Connection.ReadOnlyCache.Clear();
+                }
+            }
 
             if (!Initialized)
             {

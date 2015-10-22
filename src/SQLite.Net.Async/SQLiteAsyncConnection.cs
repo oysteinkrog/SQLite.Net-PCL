@@ -55,7 +55,7 @@ namespace SQLite.Net.Async
         }
 
         [PublicAPI]
-        protected SQLiteConnectionWithLock GetConnection()
+        public SQLiteConnectionWithLock GetConnection()
         {
             return _sqliteConnectionFunc();
         }

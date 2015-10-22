@@ -268,7 +268,14 @@ namespace SQLite.Net
 	    public bool ReadOnlyCaching
 	    {
 		    get { return _readOnlyCaching; }
-		    private set { _readOnlyCaching = value; }
+	        set
+	        {
+	            if (_readOnlyCaching && !value && ReadOnlyCache != null)
+	            {
+	                ReadOnlyCache.Clear();
+	            }
+	            _readOnlyCaching = value;
+	        }
 	    }
 
 	    internal ReadOnlyQueryCache ReadOnlyCache
