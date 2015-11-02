@@ -23,8 +23,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Xml.Serialization;
 using JetBrains.Annotations;
 using SQLite.Net.Interop;
 
@@ -54,6 +59,11 @@ namespace SQLite.Net
         public int ExecuteNonQuery()
         {
             _conn.TraceListener.WriteLine("Executing: {0}", this);
+            if (_conn.ReadOnlyCaching)
+            {
+                var commandString = this.ToString().ToLower();
+                ReadOnlyQueryCache.CheckIfCacheNeedsClearing(_conn, commandString);
+            }
 
             var stmt = Prepare();
             var r = _sqlitePlatform.SQLiteApi.Step(stmt);
@@ -87,12 +97,60 @@ namespace SQLite.Net
         [PublicAPI]
         public List<T> ExecuteQuery<T>()
         {
+            //check cache first
+            if (_conn.ReadOnlyCaching)
+            {
+                var commandString = this.ToString().ToLower();
+                if (!commandString.StartsWith("pragma"))
+                {
+                    if (_conn.ReadOnlyCache.ContainsKey(commandString))
+                    {
+                        var ser = new XmlSerializer(typeof(T[]));
+                        var result = ((T[])ser.Deserialize(new StringReader(_conn.ReadOnlyCache[commandString])));
+                        return result.ToList();
+                    }
+                    else
+                    {
+                        var result = ExecuteDeferredQuery<T>(_conn.GetMapping(typeof (T))).ToArray();
+                        var ser = new XmlSerializer(typeof(T[]));
+                        var sb = new StringBuilder();
+                        ser.Serialize(new StringWriter(sb), result);
+                        _conn.ReadOnlyCache.Add(commandString, sb.ToString());
+						return result.ToList();
+                    }
+                }
+            }
+
             return ExecuteDeferredQuery<T>(_conn.GetMapping(typeof (T))).ToList();
         }
 
         [PublicAPI]
         public List<T> ExecuteQuery<T>(TableMapping map)
         {
+            //check cache first
+            if (_conn.ReadOnlyCaching)
+            {
+                var commandString = this.ToString().ToLower();
+                if (!commandString.StartsWith("pragma"))
+                {
+                    if (_conn.ReadOnlyCache.ContainsKey(commandString))
+                    {
+                        var ser = new XmlSerializer(typeof(T[]));
+                        var result = ((T[])ser.Deserialize(new StringReader(_conn.ReadOnlyCache[commandString])));
+                        return result.ToList();
+                    }
+                    else
+                    {
+                        var result = ExecuteDeferredQuery<T>(map).ToArray();
+                        var ser = new XmlSerializer(typeof(T[]));
+                        var sb = new StringBuilder();
+                        ser.Serialize(new StringWriter(sb), result);
+                        _conn.ReadOnlyCache.Add(commandString, sb.ToString());
+                        return result.ToList();
+                    }
+                }
+            }
+
             return ExecuteDeferredQuery<T>(map).ToList();
         }
 

@@ -59,8 +59,10 @@ namespace SQLite.Net
         private bool _open;
         private IStopwatch _sw;
         private int _transactionDepth;
+	    private bool _readOnlyCaching;
+	    private ReadOnlyQueryCache _readOnlyCache = new ReadOnlyQueryCache();
 
-        static SQLiteConnection()
+	    static SQLiteConnection()
         {
             if (_preserveDuringLinkMagic)
             {
@@ -102,46 +104,49 @@ namespace SQLite.Net
         [PublicAPI]
         public SQLiteConnection([JetBrains.Annotations.NotNull] ISQLitePlatform sqlitePlatform, [JetBrains.Annotations.NotNull] string databasePath,
             bool storeDateTimeAsTicks = true, [CanBeNull] IBlobSerializer serializer = null, [CanBeNull] IDictionary<string, TableMapping> tableMappings = null,
-            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, [CanBeNull] IContractResolver resolver = null)
+            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, [CanBeNull] IContractResolver resolver = null, bool readOnlyCaching = true)
             : this(sqlitePlatform, databasePath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create, storeDateTimeAsTicks,
-                serializer, tableMappings, extraTypeMappings, resolver)
+                serializer, tableMappings, extraTypeMappings, resolver, readOnlyCaching)
         {
         }
 
-        /// <summary>
-        ///     Constructs a new SQLiteConnection and opens a SQLite database specified by databasePath.
-        /// </summary>
-        /// <param name="sqlitePlatform"></param>
-        /// <param name="databasePath">
-        ///     Specifies the path to the database file.
-        /// </param>
-        /// <param name="openFlags"></param>
-        /// <param name="storeDateTimeAsTicks">
-        ///     Specifies whether to store DateTime properties as ticks (true) or strings (false). You
-        ///     absolutely do want to store them as Ticks in all new projects. The option to set false is
-        ///     only here for backwards compatibility. There is a *significant* speed advantage, with no
-        ///     down sides, when setting storeDateTimeAsTicks = true.
-        /// </param>
-        /// <param name="serializer">
-        ///     Blob serializer to use for storing undefined and complex data structures. If left null
-        ///     these types will thrown an exception as usual.
-        /// </param>
-        /// <param name="tableMappings">
-        ///     Exisiting table mapping that the connection can use. If its null, it creates the mappings,
-        ///     if and when required. The mappings are also created when an unknown type is used for the first
-        ///     time.
-        /// </param>
-        /// <param name="extraTypeMappings">
-        ///     Any extra type mappings that you wish to use for overriding the default for creating
-        ///     column definitions for SQLite DDL in the class Orm (snake in Swedish).
-        /// </param>
-        /// <param name="resolver">
-        ///     A contract resovler for resolving interfaces to concreate types during object creation
-        /// </param>
-        [PublicAPI]
+	    /// <summary>
+	    ///     Constructs a new SQLiteConnection and opens a SQLite database specified by databasePath.
+	    /// </summary>
+	    /// <param name="sqlitePlatform"></param>
+	    /// <param name="databasePath">
+	    ///     Specifies the path to the database file.
+	    /// </param>
+	    /// <param name="openFlags"></param>
+	    /// <param name="storeDateTimeAsTicks">
+	    ///     Specifies whether to store DateTime properties as ticks (true) or strings (false). You
+	    ///     absolutely do want to store them as Ticks in all new projects. The option to set false is
+	    ///     only here for backwards compatibility. There is a *significant* speed advantage, with no
+	    ///     down sides, when setting storeDateTimeAsTicks = true.
+	    /// </param>
+	    /// <param name="serializer">
+	    ///     Blob serializer to use for storing undefined and complex data structures. If left null
+	    ///     these types will thrown an exception as usual.
+	    /// </param>
+	    /// <param name="tableMappings">
+	    ///     Exisiting table mapping that the connection can use. If its null, it creates the mappings,
+	    ///     if and when required. The mappings are also created when an unknown type is used for the first
+	    ///     time.
+	    /// </param>
+	    /// <param name="extraTypeMappings">
+	    ///     Any extra type mappings that you wish to use for overriding the default for creating
+	    ///     column definitions for SQLite DDL in the class Orm (snake in Swedish).
+	    /// </param>
+	    /// <param name="resolver">
+	    ///     A contract resovler for resolving interfaces to concreate types during object creation
+	    /// </param>
+	    /// <param name="readOnlyCaching">
+	    ///		Read only caching is currently a work in progress. Do not use if you do not know how it works for now!
+	    /// </param>
+	    [PublicAPI]
         public SQLiteConnection([JetBrains.Annotations.NotNull] ISQLitePlatform sqlitePlatform, string databasePath, SQLiteOpenFlags openFlags,
             bool storeDateTimeAsTicks = true, [CanBeNull] IBlobSerializer serializer = null, [CanBeNull] IDictionary<string, TableMapping> tableMappings = null,
-            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, IContractResolver resolver = null)
+            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, IContractResolver resolver = null, bool readOnlyCaching = false)
         {
             if (sqlitePlatform == null)
             {
@@ -184,6 +189,8 @@ namespace SQLite.Net
             StoreDateTimeAsTicks = storeDateTimeAsTicks;
 
             BusyTimeout = TimeSpan.FromSeconds(0.1);
+
+		    _readOnlyCaching = readOnlyCaching;
         }
 
         [CanBeNull, PublicAPI]
@@ -258,7 +265,25 @@ namespace SQLite.Net
         [JetBrains.Annotations.NotNull, PublicAPI]
         public ISQLitePlatform Platform { get; private set; }
 
-        [PublicAPI]
+	    public bool ReadOnlyCaching
+	    {
+		    get { return _readOnlyCaching; }
+	        set
+	        {
+	            if (_readOnlyCaching && !value && ReadOnlyCache != null)
+	            {
+	                ReadOnlyCache.Clear();
+	            }
+	            _readOnlyCaching = value;
+	        }
+	    }
+
+	    internal ReadOnlyQueryCache ReadOnlyCache
+	    {
+			get { return _readOnlyCache; }
+	    }
+
+	    [PublicAPI]
         public void Dispose()
         {
             Dispose(true);
