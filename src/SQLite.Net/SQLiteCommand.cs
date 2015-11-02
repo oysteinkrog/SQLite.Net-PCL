@@ -62,11 +62,7 @@ namespace SQLite.Net
             if (_conn.ReadOnlyCaching)
             {
                 var commandString = this.ToString().ToLower();
-                if (commandString.StartsWith("insert") || commandString.StartsWith("update") || commandString.StartsWith("delete") ||
-                    commandString.StartsWith("create") || commandString.StartsWith("alter") || commandString.StartsWith("drop"))
-                {
-                    _conn.ReadOnlyCache.Clear();
-                }
+                ReadOnlyQueryCache.CheckIfCacheNeedsClearing(_conn, commandString);
             }
 
             var stmt = Prepare();
