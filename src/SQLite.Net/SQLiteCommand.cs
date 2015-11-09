@@ -23,6 +23,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -43,6 +44,7 @@ namespace SQLite.Net
 
         private readonly SQLiteConnection _conn;
         private readonly ISQLitePlatform _sqlitePlatform;
+        private const string DateTimeFormat = "yyyy-MM-ddTHH:mm:ss.fffffffZ";
 
         internal SQLiteCommand(ISQLitePlatform platformImplementation, SQLiteConnection conn)
         {
@@ -401,11 +403,13 @@ namespace SQLite.Net
                 {
                     if (storeDateTimeAsTicks)
                     {
-                        isqLite3Api.BindInt64(stmt, index, ((DateTime) value).ToUniversalTime().Ticks);
+                        long ticks = ((DateTime) value).ToUniversalTime().Ticks;
+                        isqLite3Api.BindInt64(stmt, index, ticks);
                     }
                     else
                     {
-                        isqLite3Api.BindText16(stmt, index, ((DateTime) value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"), -1, NegativePointer);
+                        string val = ((DateTime) value).ToUniversalTime().ToString(DateTimeFormat, CultureInfo.InvariantCulture);
+                        isqLite3Api.BindText16(stmt, index, val, -1, NegativePointer);
                     }
                 }
                 else if (value is DateTimeOffset)
@@ -416,12 +420,13 @@ namespace SQLite.Net
                 {
                     if (storeDateTimeAsTicks)
                     {
-                        isqLite3Api.BindInt64(stmt, index, ((ISerializable<DateTime>) value).Serialize().ToUniversalTime().Ticks);
+                        long ticks = ((ISerializable<DateTime>) value).Serialize().ToUniversalTime().Ticks;
+                        isqLite3Api.BindInt64(stmt, index, ticks);
                     }
                     else
                     {
-                        isqLite3Api.BindText16(stmt, index,
-                            ((ISerializable<DateTime>) value).Serialize().ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"), -1, NegativePointer);
+                        string val = ((ISerializable<DateTime>) value).Serialize().ToUniversalTime().ToString(DateTimeFormat, CultureInfo.InvariantCulture);
+                        isqLite3Api.BindText16(stmt, index, val, -1, NegativePointer);
                     }
                 }
                 else if (value.GetType().GetTypeInfo().IsEnum)
@@ -526,7 +531,7 @@ namespace SQLite.Net
                 {
                     return new DateTime(_sqlitePlatform.SQLiteApi.ColumnInt64(stmt, index), DateTimeKind.Utc);
                 }
-                return DateTime.Parse(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index));
+                return DateTime.Parse(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index), CultureInfo.InvariantCulture);
             }
             if (clrType == typeof (DateTimeOffset))
             {
@@ -541,7 +546,7 @@ namespace SQLite.Net
                 }
                 else
                 {
-                    value = DateTime.Parse(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index));
+                    value = DateTime.Parse(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index), CultureInfo.InvariantCulture);
                 }
                 return Activator.CreateInstance(clrType, value);
             }
