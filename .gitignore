@@ -13,3 +13,7 @@ TestResults
 /SQLite.Net.sln.ide
 /.vs
 /nuget/SQLite.Net*
+
+#ncrunch
+*ncrunch*
+*crunch*.local.xml
