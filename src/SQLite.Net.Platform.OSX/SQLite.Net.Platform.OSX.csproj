@@ -78,4 +78,5 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\SQLite.Net.Platform.Shared.Interop\SQLite.Net.Platform.Shared.Interop.projitems" Label="Shared" />
+  <Import Project="..\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems" Label="Shared" />
 </Project>
