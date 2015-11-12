@@ -6,7 +6,7 @@ using System.IO;
 using System.Reflection;
 #endif
 
-namespace SQLite.Net.Platform.Shared
+namespace SQLite.Net.Platform.Shared.Interop
 {
     internal static class SQLiteApiInternal
     {

@@ -1,4 +1,4 @@
-namespace SQLite.Net.Platform.Shared
+namespace SQLite.Net.Platform.Shared.Interop
 {
     internal static class SQLiteApiInternalConfiguration
     {

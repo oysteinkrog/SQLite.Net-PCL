@@ -6,7 +6,7 @@
     <SharedGUID>f4a021a1-cb71-4fe7-9a37-9947f636be1f</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>SQLite.Net.Platform.Shared</Import_RootNamespace>
+    <Import_RootNamespace>SQLite.Net.Platform.Shared.Interop</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)SQLiteApiInternal.cs" />

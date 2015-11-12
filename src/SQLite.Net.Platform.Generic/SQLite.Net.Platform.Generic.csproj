@@ -51,5 +51,5 @@
       <Name>SQLite.Net</Name>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="..\SQLite.Net.Platform.Shared\SQLite.Net.Platform.Shared.projitems" Label="Shared" />
+  <Import Project="..\SQLite.Net.Platform.Shared.Interop\SQLite.Net.Platform.Shared.Interop.projitems" Label="Shared" />
 </Project>
