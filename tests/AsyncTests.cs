@@ -54,7 +54,7 @@ namespace SQLite.Net.Tests
         [Column("AGoodColumnName")]
         public string AFunnyColumnName { get; set; }
     }
-
+    
     /// <summary>
     ///     Defines tests that exercise async behaviour.
     /// </summary>
@@ -166,9 +166,14 @@ namespace SQLite.Net.Tests
         {
             SQLiteAsyncConnection globalConn = GetAsyncConnection();
 
-            await globalConn.CreateTableAsync<Customer>();
+            //await globalConn.ExecuteNonQueryAsync("CREATE TABLE A (a integer)");  // sanity check
+            //await globalConn.ExecuteAsync("PRAGMA journal_mode=WAL");             // fails with Result Row
+            //await globalConn.ExecuteNonQueryAsync("PRAGMA busy_timeout = 200");   // fails with Result Row
 
-            int n = 500;
+W            await globalConn.CreateTableAsync<Customer>();
+
+            int n = 50;
+//            int n = 500;
             var errors = new List<string>();
             var tasks = new List<Task>();
             for (int i = 0; i < n; i++)
