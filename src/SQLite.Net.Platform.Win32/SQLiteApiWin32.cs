@@ -11,7 +11,7 @@ namespace SQLite.Net.Platform.Win32
         public SQLiteApiWin32(string nativeInteropSearchPath = null)
         {
             if (nativeInteropSearchPath  != null)
-                SQLiteApiInternalConfiguration.NativeInteropSearchPath = nativeInteropSearchPath;
+                SQLite3Configuration.NativeInteropSearchPath = nativeInteropSearchPath;
         }        
     }
 }

@@ -9,7 +9,7 @@
     <Import_RootNamespace>SQLite.Net.Platform.Shared.Interop</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)SQLiteApiInternal.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)SQLiteApiInternalConfiguration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SQLite3.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SQLite3Configuration.cs" />
   </ItemGroup>
 </Project>

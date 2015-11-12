@@ -71,11 +71,15 @@ Global
 		src\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems*{03799ad1-9fcf-48cb-8e6e-b233df583b11}*SharedItemsImports = 4
 		src\SQLite.Net.Platform.Shared.Interop\SQLite.Net.Platform.Shared.Interop.projitems*{6377929d-6253-450d-bf4b-3e8ece2564f7}*SharedItemsImports = 4
 		src\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems*{6377929d-6253-450d-bf4b-3e8ece2564f7}*SharedItemsImports = 4
+		src\SQLite.Net.Platform.Shared.Interop\SQLite.Net.Platform.Shared.Interop.projitems*{38af8105-65b6-4a14-a258-1137d9e40ef1}*SharedItemsImports = 4
+		src\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems*{38af8105-65b6-4a14-a258-1137d9e40ef1}*SharedItemsImports = 4
 		src\SQLite.Net.Platform.Shared.Interop\SQLite.Net.Platform.Shared.Interop.projitems*{f662e15a-8753-468e-a67e-3fcf45f12b89}*SharedItemsImports = 4
 		src\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems*{f662e15a-8753-468e-a67e-3fcf45f12b89}*SharedItemsImports = 4
 		src\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems*{3f8596c5-39ec-43e6-9d3c-5554b61de3ae}*SharedItemsImports = 13
 		src\SQLite.Net.Platform.Shared.Interop\SQLite.Net.Platform.Shared.Interop.projitems*{219700f0-5444-4250-87d6-0551b39ca402}*SharedItemsImports = 4
 		src\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems*{219700f0-5444-4250-87d6-0551b39ca402}*SharedItemsImports = 4
+		src\SQLite.Net.Platform.Shared.Interop\SQLite.Net.Platform.Shared.Interop.projitems*{6891e212-aeee-4763-ac6f-bd7213c13890}*SharedItemsImports = 4
+		src\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems*{6891e212-aeee-4763-ac6f-bd7213c13890}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Ad-Hoc|Any CPU = Ad-Hoc|Any CPU

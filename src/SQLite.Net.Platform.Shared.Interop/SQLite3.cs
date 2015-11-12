@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace SQLite.Net.Platform.Shared.Interop
 {
-    internal static class SQLiteApiInternal
+    internal static class SQLite3
     {
 #if WIN32
         private const string LibraryPath = "SQLite.Interop.dll";
@@ -19,24 +19,24 @@ namespace SQLite.Net.Platform.Shared.Interop
 #endif
 
 #if WIN32
-        static SQLiteApiInternal()
+        static SQLite3()
         {
             int ptrSize = IntPtr.Size;
             var architectureDirectory = (ptrSize == 8 ? "x64" : "x86");
             var interopFilename = "SQLite.Interop.dll";
 
             string interopPath = null;
-            if (!string.IsNullOrWhiteSpace(SQLiteApiInternalConfiguration.NativeInteropSearchPath))
+            if (!string.IsNullOrWhiteSpace(SQLite3Configuration.NativeInteropSearchPath))
             {
                 // a NativeInteropSearchPath is given, so we try to find the file name there
-                var fileInSearchPath = Path.Combine(SQLiteApiInternalConfiguration.NativeInteropSearchPath, interopFilename);
+                var fileInSearchPath = Path.Combine(SQLite3Configuration.NativeInteropSearchPath, interopFilename);
                 if (File.Exists(fileInSearchPath))
                 {
                     interopPath = fileInSearchPath;
                 }
                 else
                 {
-                    var fileInSearchPathWithArchitecture = Path.Combine(SQLiteApiInternalConfiguration.NativeInteropSearchPath, architectureDirectory, interopFilename);
+                    var fileInSearchPathWithArchitecture = Path.Combine(SQLite3Configuration.NativeInteropSearchPath, architectureDirectory, interopFilename);
                     if (File.Exists(fileInSearchPathWithArchitecture))
                         interopPath = fileInSearchPathWithArchitecture;
                 }
@@ -104,6 +104,11 @@ namespace SQLite.Net.Platform.Shared.Interop
 
         [DllImport(LibraryPath, EntryPoint = "sqlite3_prepare_v2", CallingConvention = CallingConvention.Cdecl)]
         public static extern Result sqlite3_prepare_v2(IntPtr db, [MarshalAs(UnmanagedType.LPStr)] string sql, int numBytes, out IntPtr stmt, IntPtr pzTail);
+
+#if NETFX_CORE
+		[DllImport (LibraryPath, EntryPoint = "sqlite3_prepare_v2", CallingConvention = CallingConvention.Cdecl)]
+		public static extern Result sqlite3_prepare_v2 (IntPtr db, byte[] queryBytes, int numBytes, out IntPtr stmt, IntPtr pzTail);
+#endif
 
         [DllImport(LibraryPath, EntryPoint = "sqlite3_step", CallingConvention = CallingConvention.Cdecl)]
         public static extern Result sqlite3_step(IntPtr stmt);
