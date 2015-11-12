@@ -161,7 +161,6 @@ namespace SQLite.Net.Tests
             Assert.AreEqual(customer.Id, loaded.Id);
         }
 
-
         [Test]
         public async Task StressAsync()
         {
@@ -203,6 +202,7 @@ namespace SQLite.Net.Tests
                         {
                             FirstName = i.ToString(),
                         };
+
                         await conn.InsertAsync(obj);
 
                         if (obj.Id == 0)
