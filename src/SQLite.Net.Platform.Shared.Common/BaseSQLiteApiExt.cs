@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using SQLite.Net.Interop;
 using SQLite.Net.Platform.Shared.Interop;
+using System.Text;
 
 namespace SQLite.Net.Platform.Shared.Common
 {
@@ -80,22 +81,27 @@ namespace SQLite.Net.Platform.Shared.Common
             return SQLite3.sqlite3_changes(internalDbHandle.DbPtr);
         }
 
-        public IDbStatement Prepare2(IDbHandle db, string query)
+        public IDbStatement Prepare2(IDbHandle db, ref string query)
         {
             var internalDbHandle = (DbHandle)db;
             IntPtr stmt;
 
-#if NETFX_CORE
-            byte[] queryBytes = System.Text.UTF8Encoding.UTF8.GetBytes (query);
-            var r = SQLite3.sqlite3_prepare_v2(internalDbHandle.DbPtr, queryBytes, queryBytes.Length, out stmt, IntPtr.Zero);
-#else
-            var r = SQLite3.sqlite3_prepare_v2(internalDbHandle.DbPtr, query, System.Text.UTF8Encoding.UTF8.GetByteCount(query), out stmt, IntPtr.Zero);
-#endif
+            var queryBytes = query.ToUTF8Bytes();
+            GCHandle handle = GCHandle.Alloc(queryBytes, GCHandleType.Pinned);
+            IntPtr pSql = handle.AddrOfPinnedObject();
+
+            IntPtr pzTail;
+            var r = SQLite3.sqlite3_prepare_v2(internalDbHandle.DbPtr, pSql, queryBytes.Length - 1, out stmt, out pzTail);
+            var queryTail = pzTail.ToUT8String(); // If error happens, need original 'query' value
 
             if (r != Result.OK)
             {
                 throw SQLiteException.New(r, Errmsg16(internalDbHandle));
             }
+
+            query = queryTail;
+            handle.Free();
+
             return new DbStatement(stmt);
         }
 
