@@ -40,7 +40,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReflectionServiceIOS.cs" />
     <Compile Include="SQLiteApiIOS.cs" />
-    <Compile Include="SQLiteApiIOSInternal.cs" />
     <Compile Include="SQLitePlatformIOS.cs" />
     <Compile Include="StopwatchFactoryIOS.cs" />
     <Compile Include="VolatileServiceIOS.cs" />
@@ -57,5 +56,6 @@
       <Name>SQLite.Net</Name>
     </ProjectReference>
   </ItemGroup>
+  <Import Project="..\SQLite.Net.Platform.Shared\SQLite.Net.Platform.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.MonoTouch.CSharp.targets" />
 </Project>

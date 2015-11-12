@@ -56,7 +56,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SQLite.Net", "src\SQLite.Ne
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SQLite.Net.Async", "src\SQLite.Net.Async\SQLite.Net.Async.csproj", "{3AB34E91-8E1A-442F-8E66-2494B371A890}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SQLite.Net.Platform.Shared", "src\SQLite.Net.Platform.Shared\SQLite.Net.Platform.Shared.shproj", "{F4A021A1-CB71-4FE7-9A37-9947F636BE1F}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\SQLite.Net.Platform.Shared\SQLite.Net.Platform.Shared.projitems*{f4a021a1-cb71-4fe7-9a37-9947f636be1f}*SharedItemsImports = 13
+		src\SQLite.Net.Platform.Shared\SQLite.Net.Platform.Shared.projitems*{3173703f-8b1f-4772-9ae3-44913f413fb1}*SharedItemsImports = 4
+		src\SQLite.Net.Platform.Shared\SQLite.Net.Platform.Shared.projitems*{03799ad1-9fcf-48cb-8e6e-b233df583b10}*SharedItemsImports = 4
+		src\SQLite.Net.Platform.Shared\SQLite.Net.Platform.Shared.projitems*{03799ad1-9fcf-48cb-8e6e-b233df583b11}*SharedItemsImports = 4
+		src\SQLite.Net.Platform.Shared\SQLite.Net.Platform.Shared.projitems*{6377929d-6253-450d-bf4b-3e8ece2564f7}*SharedItemsImports = 4
+		src\SQLite.Net.Platform.Shared\SQLite.Net.Platform.Shared.projitems*{f662e15a-8753-468e-a67e-3fcf45f12b89}*SharedItemsImports = 4
+		src\SQLite.Net.Platform.Shared\SQLite.Net.Platform.Shared.projitems*{219700f0-5444-4250-87d6-0551b39ca402}*SharedItemsImports = 4
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Ad-Hoc|Any CPU = Ad-Hoc|Any CPU
 		Ad-Hoc|ARM = Ad-Hoc|ARM
@@ -1071,5 +1082,6 @@ Global
 		{0A947CD1-3C6F-415A-A122-233BAE3005FD} = {0C4021EF-617B-4620-ADD3-A702B4F9FA86}
 		{8EA10208-DC51-48A1-A0FE-726FEE55DE79} = {0C4021EF-617B-4620-ADD3-A702B4F9FA86}
 		{9E5D6B89-B69B-486B-9F7B-406BE8690589} = {49C7015B-F41A-47A6-8200-B925902E74E9}
+		{F4A021A1-CB71-4FE7-9A37-9947F636BE1F} = {59584026-7610-4CD5-A74E-D2B0A2E1CE87}
 	EndGlobalSection
 EndGlobal
