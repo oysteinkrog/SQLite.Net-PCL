@@ -34,6 +34,8 @@ namespace SQLite.Net
     {
         private static readonly IDbStatement NullStatement = default(IDbStatement);
 
+        private string _remainingText;
+
         internal PreparedSqlLiteInsertCommand(SQLiteConnection conn)
         {
             Connection = conn;
@@ -67,6 +69,8 @@ namespace SQLite.Net
         public int ExecuteNonQuery(object[] source)
         {
             Connection.TraceListener.WriteLine("Executing: {0}", CommandText);
+
+            _remainingText = CommandText.Trim().TrimEnd(';');
 
             if (!Initialized)
             {
@@ -110,7 +114,7 @@ namespace SQLite.Net
         [PublicAPI]
         protected virtual IDbStatement Prepare()
         {
-            var stmt = Connection.Platform.SQLiteApi.Prepare2(Connection.Handle, CommandText);
+            var stmt = Connection.Platform.SQLiteApi.Prepare2(Connection.Handle, ref _remainingText);
             return stmt;
         }
 

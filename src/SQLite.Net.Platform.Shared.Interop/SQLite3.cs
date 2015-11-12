@@ -103,7 +103,9 @@ namespace SQLite.Net.Platform.Shared.Interop
         public static extern int sqlite3_changes(IntPtr db);
 
         [DllImport(LibraryPath, EntryPoint = "sqlite3_prepare_v2", CallingConvention = CallingConvention.Cdecl)]
-        public static extern Result sqlite3_prepare_v2(IntPtr db, [MarshalAs(UnmanagedType.LPStr)] string sql, int numBytes, out IntPtr stmt, IntPtr pzTail);
+        public static extern Result sqlite3_prepare_v2(IntPtr db, IntPtr sql,
+           int numBytes,
+           out IntPtr stmt, out IntPtr pzTail);
 
 #if NETFX_CORE
 		[DllImport (LibraryPath, EntryPoint = "sqlite3_prepare_v2", CallingConvention = CallingConvention.Cdecl)]
