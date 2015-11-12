@@ -8,7 +8,7 @@ using NUnit.Framework;
 using PCLStorage;
 using SQLite.Net.Async;
 using SQLite.Net.Attributes;
-
+using System.Diagnostics;
 
 namespace SQLite.Net.Tests
 {
@@ -164,15 +164,19 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task StressAsync()
         {
-            SQLiteAsyncConnection globalConn = GetAsyncConnection();
+            const int defaultBusyTimeout = 100;
 
-            //await globalConn.ExecuteNonQueryAsync("CREATE TABLE A (a integer)");  // sanity check
-            //await globalConn.ExecuteAsync("PRAGMA journal_mode=WAL");             // fails with Result Row
-            //await globalConn.ExecuteNonQueryAsync("PRAGMA busy_timeout = 200");   // fails with Result Row
+            SQLiteAsyncConnection globalConn = GetAsyncConnection();
+           
+            var journalMode = await globalConn.ExecuteScalarAsync<string>("PRAGMA journal_mode = wal"); // = wal");
+            Debug.WriteLine("journal_mode: " + journalMode);
+            var busyTimeout = await globalConn.ExecuteScalarAsync<string>(
+                string.Format("PRAGMA busy_timeout = {0}", defaultBusyTimeout));
+            Debug.WriteLine("busy_timeout: " + busyTimeout);
 
             await globalConn.CreateTableAsync<Customer>();
 
-            int n = 50;
+            int n = 100;
 //            int n = 500;
             var errors = new List<string>();
             var tasks = new List<Task>();
@@ -183,6 +187,12 @@ namespace SQLite.Net.Tests
                     try
                     {
                         SQLiteAsyncConnection conn = GetAsyncConnection();
+
+                        // Each connection retains the global journal_mode but somehow resets busy_timeout to 100
+                        busyTimeout = await globalConn.ExecuteScalarAsync<string>(
+                            string.Format("PRAGMA busy_timeout = {0}", defaultBusyTimeout));
+//                        Debug.WriteLine("busy_timeout: " + busyTimeout);
+
                         var obj = new Customer
                         {
                             FirstName = i.ToString(),
@@ -217,9 +227,17 @@ namespace SQLite.Net.Tests
             }
 
             await Task.WhenAll(tasks);
-            int count = await globalConn.Table<Customer>().CountAsync();
+
+            int j = 0;
+            foreach (var error in errors)
+            {
+                Debug.WriteLine("{0} {1}", j++, error);
+            }
 
             Assert.AreEqual(0, errors.Count);
+
+            // could be locked
+            int count = await globalConn.Table<Customer>().CountAsync();
             Assert.AreEqual(n, count);
         }
 
