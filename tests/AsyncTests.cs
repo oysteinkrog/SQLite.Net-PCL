@@ -170,7 +170,7 @@ namespace SQLite.Net.Tests
             //await globalConn.ExecuteAsync("PRAGMA journal_mode=WAL");             // fails with Result Row
             //await globalConn.ExecuteNonQueryAsync("PRAGMA busy_timeout = 200");   // fails with Result Row
 
-W            await globalConn.CreateTableAsync<Customer>();
+            await globalConn.CreateTableAsync<Customer>();
 
             int n = 50;
 //            int n = 500;
