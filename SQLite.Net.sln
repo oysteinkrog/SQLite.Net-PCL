@@ -69,7 +69,6 @@ Global
 		tests\SQLite.Net.Tests.Shared\SQLite.Net.Tests.Shared.projitems*{bff4b373-2844-40ad-8994-2ba5ac42aee0}*SharedItemsImports = 4
 		src\SQLite.Net.Platform.Shared.Interop\SQLite.Net.Platform.Shared.Interop.projitems*{3173703f-8b1f-4772-9ae3-44913f413fb1}*SharedItemsImports = 4
 		src\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems*{3173703f-8b1f-4772-9ae3-44913f413fb1}*SharedItemsImports = 4
-		tests\SQLite.Net.Tests.Shared\SQLite.Net.Tests.Shared.projitems*{0a947cd1-3c6f-415a-a122-233bae3005fd}*SharedItemsImports = 4
 		tests\SQLite.Net.Tests.Shared\SQLite.Net.Tests.Shared.projitems*{8ea10208-dc51-48a1-a0fe-726fee55de79}*SharedItemsImports = 4
 		src\SQLite.Net.Platform.Shared.Interop\SQLite.Net.Platform.Shared.Interop.projitems*{03799ad1-9fcf-48cb-8e6e-b233df583b10}*SharedItemsImports = 4
 		src\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems*{03799ad1-9fcf-48cb-8e6e-b233df583b10}*SharedItemsImports = 4
