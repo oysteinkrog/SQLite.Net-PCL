@@ -38,7 +38,15 @@ namespace SQLite.Net.Interop
         int BackupPagecount(IDbBackupHandle handle);
         
         int Sleep(int millis);
-        
+
         #endregion
+
+        #region Encryption
+
+        void ActivateCerod(string passPhrase);
+
+        void ActivateSee(string passPhrase);
+
+        #endregion 
     }
 }

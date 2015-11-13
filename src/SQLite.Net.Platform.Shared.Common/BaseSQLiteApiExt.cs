@@ -236,7 +236,7 @@ namespace SQLite.Net.Platform.Shared.Common
             return SQLite3.ColumnByteArray(internalStmt.StmtPtr, index);
         }
 
-#region Backup
+        #region Backup
 
         public IDbBackupHandle BackupInit(IDbHandle destHandle, string destName, IDbHandle srcHandle, string srcName)
         {
@@ -302,7 +302,31 @@ namespace SQLite.Net.Platform.Shared.Common
             }
         }
 
-#endregion
+        #endregion
+
+        #region Encryption
+
+        public void ActivateCerod(string passPhrase)
+        {
+            if (!string.IsNullOrEmpty(passPhrase))
+            {
+                byte[] passPhraseBytes = Encoding.UTF8.GetBytes(passPhrase);
+
+                SQLite3.sqlite3_activate_cerod(passPhraseBytes);
+            }
+        }
+
+        public void ActivateSee(string passPhrase)
+        {
+            if (!string.IsNullOrEmpty(passPhrase))
+            {
+                byte[] passPhraseBytes = Encoding.UTF8.GetBytes(passPhrase);
+
+                SQLite3.sqlite3_activate_see(passPhraseBytes);
+            }
+        }
+
+        #endregion 
 
         protected struct DbHandle : IDbHandle
         {
