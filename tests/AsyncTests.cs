@@ -171,10 +171,10 @@ namespace SQLite.Net.Tests
             // see http://stackoverflow.com/questions/12004426/sqlite-returns-sqlite-busy-in-wal-mode
             var journalMode = await globalConn.ExecuteScalarAsync<string>("PRAGMA journal_mode = wal"); // = wal");
             Debug.WriteLine("journal_mode: " + journalMode);
-            var synchronous = await globalConn.ExecuteScalarAsync<string>("PRAGMA synchronous");        // 2 = FULL
-            Debug.WriteLine("synchronous: " + synchronous);
-            var pageSize = await globalConn.ExecuteScalarAsync<string>("PRAGMA page_size");             // 1024 default
-            Debug.WriteLine("page_size: " + pageSize);
+            //var synchronous = await globalConn.ExecuteScalarAsync<string>("PRAGMA synchronous");        // 2 = FULL
+            //Debug.WriteLine("synchronous: " + synchronous);
+            //var pageSize = await globalConn.ExecuteScalarAsync<string>("PRAGMA page_size");             // 1024 default
+            //Debug.WriteLine("page_size: " + pageSize);
             var busyTimeout = await globalConn.ExecuteScalarAsync<string>(
                 string.Format("PRAGMA busy_timeout = {0}", defaultBusyTimeout));
             Debug.WriteLine("busy_timeout: " + busyTimeout);
@@ -189,7 +189,7 @@ namespace SQLite.Net.Tests
             {
                 int taskId = i;
 
-                tasks.Add(Task.Factory.StartNew(async delegate
+                tasks.Add(Task.Run(async () =>
                 {
                     string taskStep = "";
 
@@ -230,7 +230,7 @@ namespace SQLite.Net.Tests
                             }
                         }
 
-//                        Debug.WriteLine("{0} {1} {2}", taskId, obj.Id, obj.FirstName);
+//                        Debug.WriteLine("task {0} with id {1} and name {2}", taskId, obj.Id, obj.FirstName);
                     }
                     catch (Exception ex)
                     {
@@ -243,6 +243,7 @@ namespace SQLite.Net.Tests
             }
 
             await Task.WhenAll(tasks);
+            Assert.AreEqual(n, tasks.Where(t => t.IsCompleted).Count());
 
             //int j = 0;
             //foreach (var error in errors)
@@ -252,7 +253,6 @@ namespace SQLite.Net.Tests
 
             Assert.AreEqual(0, errors.Count, "Error in task runs");
 
-            await Task.Delay(200);
             int count = await globalConn.Table<Customer>().CountAsync();
             Assert.AreEqual(n, count, "Not enough items in table");
 
