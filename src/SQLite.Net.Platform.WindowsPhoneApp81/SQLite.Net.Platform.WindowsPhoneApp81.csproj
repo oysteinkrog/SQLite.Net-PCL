@@ -106,6 +106,8 @@
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <Import Project="..\SQLite.Net.Platform.Shared.Interop\SQLite.Net.Platform.Shared.Interop.projitems" Label="Shared" />
+  <Import Project="..\SQLite.Net.Platform.Shared.Common\SQLite.Net.Platform.Shared.Common.projitems" Label="Shared" />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '12.0' ">
     <VisualStudioVersion>12.0</VisualStudioVersion>
   </PropertyGroup>

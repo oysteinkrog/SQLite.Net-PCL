@@ -44,7 +44,7 @@ namespace SQLite.Net.Interop
         int Changes(IDbHandle db);
         //        Result Prepare2(IDbHandle db, string sql, int numBytes, out IDbStatement stmt, IntPtr pzTail);
 
-        IDbStatement Prepare2(IDbHandle db, string query);
+        IDbStatement Prepare2(IDbHandle db, ref string query);
         Result Step(IDbStatement stmt);
         Result Reset(IDbStatement stmt);
         Result Finalize(IDbStatement stmt);
