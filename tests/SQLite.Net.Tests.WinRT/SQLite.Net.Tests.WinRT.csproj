@@ -120,7 +120,6 @@
     </SDKReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\*.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -187,6 +186,7 @@
       <Name>SQLite.Net</Name>
     </ProjectReference>
   </ItemGroup>
+  <Import Project="..\SQLite.Net.Tests.Shared\SQLite.Net.Tests.Shared.projitems" Label="Shared" />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '12.0' ">
     <VisualStudioVersion>12.0</VisualStudioVersion>
   </PropertyGroup>
