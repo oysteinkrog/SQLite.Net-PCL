@@ -24,6 +24,7 @@
 using System;
 using JetBrains.Annotations;
 using SQLite.Net.Interop;
+using System.Diagnostics;
 
 namespace SQLite.Net
 {
@@ -33,6 +34,8 @@ namespace SQLite.Net
     public class PreparedSqlLiteInsertCommand : IDisposable
     {
         private static readonly IDbStatement NullStatement = default(IDbStatement);
+
+        private string _remainingText;
 
         internal PreparedSqlLiteInsertCommand(SQLiteConnection conn)
         {
@@ -63,10 +66,13 @@ namespace SQLite.Net
             Dispose(false);
         }
 
+        static readonly object _locker = new object();
+
         [PublicAPI]
         public int ExecuteNonQuery(object[] source)
         {
             Connection.TraceListener.WriteLine("Executing: {0}", CommandText);
+            _remainingText = CommandText.Trim().TrimEnd(';');
 
             if (!Initialized)
             {
@@ -84,7 +90,12 @@ namespace SQLite.Net
                         Connection.StoreDateTimeAsTicks, Connection.Serializer);
                 }
             }
-            var r = sqlitePlatform.SQLiteApi.Step(Statement);
+
+            Result r;
+            lock (_locker)
+            {
+                r = sqlitePlatform.SQLiteApi.Step(Statement);
+            }
 
             if (r == Result.Done)
             {
@@ -104,13 +115,14 @@ namespace SQLite.Net
                 throw NotNullConstraintViolationException.New(r, sqlitePlatform.SQLiteApi.Errmsg16(Connection.Handle));
             }
             sqlitePlatform.SQLiteApi.Reset(Statement);
+
             throw SQLiteException.New(r, r.ToString());
         }
 
         [PublicAPI]
         protected virtual IDbStatement Prepare()
         {
-            var stmt = Connection.Platform.SQLiteApi.Prepare2(Connection.Handle, CommandText);
+            var stmt = Connection.Platform.SQLiteApi.Prepare2(Connection.Handle, ref _remainingText);
             return stmt;
         }
 

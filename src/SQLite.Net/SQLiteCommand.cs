@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using JetBrains.Annotations;
 using SQLite.Net.Interop;
 
@@ -36,17 +37,21 @@ namespace SQLite.Net
         private static readonly IntPtr NegativePointer = new IntPtr(-1);
 
         [NotNull] private readonly List<Binding> _bindings;
+        [NotNull] private readonly Dictionary<string, Binding> _namedBindings;
 
         private readonly SQLiteConnection _conn;
         private readonly ISQLitePlatform _sqlitePlatform;
         private const string DateTimeFormat = "yyyy-MM-ddTHH:mm:ss.fffffffZ";
+        private string _remainingText;
 
         internal SQLiteCommand(ISQLitePlatform platformImplementation, SQLiteConnection conn)
         {
             _sqlitePlatform = platformImplementation;
             _conn = conn;
             _bindings = new List<Binding>();
+            _namedBindings = new Dictionary<string, Binding>();
             CommandText = "";
+            _remainingText = "";
         }
 
         [PublicAPI]
@@ -57,27 +62,26 @@ namespace SQLite.Net
         {
             _conn.TraceListener.WriteLine("Executing: {0}", this);
 
-            var stmt = Prepare();
-            var r = _sqlitePlatform.SQLiteApi.Step(stmt);
-            Finalize(stmt);
-            if (r == Result.Done)
+            int rowsAffected = 0;
+            _remainingText = CommandText.Trim().TrimEnd(';');
+
+            while (!string.IsNullOrEmpty(_remainingText))
             {
-                var rowsAffected = _sqlitePlatform.SQLiteApi.Changes(_conn.Handle);
-                return rowsAffected;
-            }
-            if (r == Result.Error)
-            {
-                var msg = _sqlitePlatform.SQLiteApi.Errmsg16(_conn.Handle);
-                throw SQLiteException.New(r, msg);
-            }
-            if (r == Result.Constraint)
-            {
-                if (_sqlitePlatform.SQLiteApi.ExtendedErrCode(_conn.Handle) == ExtendedResult.ConstraintNotNull)
+                var stmt = Prepare();
+                try
                 {
-                    throw NotNullConstraintViolationException.New(r, _sqlitePlatform.SQLiteApi.Errmsg16(_conn.Handle));
+                    rowsAffected += StepNonQuery(stmt);
+                }
+                catch (SQLiteException e)
+                {
+                    throw e;
+                }
+                finally
+                {
+                    Finalize(stmt);
                 }
             }
-            throw SQLiteException.New(r, r.ToString());
+            return rowsAffected;
         }
 
         [PublicAPI]
@@ -120,37 +124,50 @@ namespace SQLite.Net
         {
             _conn.TraceListener.WriteLine("Executing Query: {0}", this);
 
-            var stmt = Prepare();
-            try
+            int rowsAffected = 0;
+            _remainingText = CommandText.Trim().TrimEnd(';');
+
+            while (!string.IsNullOrEmpty(_remainingText))
             {
-                var cols = new TableMapping.Column[_sqlitePlatform.SQLiteApi.ColumnCount(stmt)];
-
-                for (var i = 0; i < cols.Length; i++)
+                var stmt = Prepare();
+                try
                 {
-                    var name = _sqlitePlatform.SQLiteApi.ColumnName16(stmt, i);
-                    cols[i] = map.FindColumn(name);
-                }
-
-                while (_sqlitePlatform.SQLiteApi.Step(stmt) == Result.Row)
-                {
-                    var obj = _conn.Resolver.CreateObject(map.MappedType);
-                    for (var i = 0; i < cols.Length; i++)
+                    var cols = new TableMapping.Column[_sqlitePlatform.SQLiteApi.ColumnCount(stmt)];
+                    
+                    if (cols.Length > 0)
                     {
-                        if (cols[i] == null)
+                        for (var i = 0; i < cols.Length; i++)
                         {
-                            continue;
+                            var name = _sqlitePlatform.SQLiteApi.ColumnName16(stmt, i);
+                            cols[i] = map.FindColumn(name);
                         }
-                        var colType = _sqlitePlatform.SQLiteApi.ColumnType(stmt, i);
-                        var val = ReadCol(stmt, i, colType, cols[i].ColumnType);
-                        cols[i].SetValue(obj, val);
+
+                        while (_sqlitePlatform.SQLiteApi.Step(stmt) == Result.Row)
+                        {
+                            var obj = _conn.Resolver.CreateObject(map.MappedType);
+                            for (var i = 0; i < cols.Length; i++)
+                            {
+                                if (cols[i] == null)
+                                {
+                                    continue;
+                                }
+                                var colType = _sqlitePlatform.SQLiteApi.ColumnType(stmt, i);
+                                var val = ReadCol(stmt, i, colType, cols[i].ColumnType);
+                                cols[i].SetValue(obj, val);
+                            }
+                            OnInstanceCreated(obj);
+                            yield return (T)obj;
+                        }                        
                     }
-                    OnInstanceCreated(obj);
-                    yield return (T) obj;
+                    else
+                    {
+                        rowsAffected += StepNonQuery(stmt);
+                    }
                 }
-            }
-            finally
-            {
-                _sqlitePlatform.SQLiteApi.Finalize(stmt);
+                finally
+                {
+                    Finalize(stmt);
+                }
             }
         }
 
@@ -160,46 +177,83 @@ namespace SQLite.Net
         {
             _conn.TraceListener.WriteLine("Executing Query: {0}", this);
 
+            int rowsAffected = 0;
+            _remainingText = CommandText.Trim().TrimEnd(';');
+
             var val = default(T);
 
-            var stmt = Prepare();
-
-            try
+            while (!string.IsNullOrEmpty(_remainingText))        // should cycle through
             {
-                var r = _sqlitePlatform.SQLiteApi.Step(stmt);
-                if (r == Result.Row)
+                var stmt = Prepare();
+                try
                 {
-                    var colType = _sqlitePlatform.SQLiteApi.ColumnType(stmt, 0);
-                    var clrType = Nullable.GetUnderlyingType(typeof (T)) ?? typeof (T);
-                    if (colType != ColType.Null)
+                    var colCount = _sqlitePlatform.SQLiteApi.ColumnCount(stmt);
+                    if (colCount > 0)
                     {
-                        val = (T) ReadCol(stmt, 0, colType, clrType);
+                        var r = _sqlitePlatform.SQLiteApi.Step(stmt);
+                        if (r == Result.Row)
+                        {
+                            var colType = _sqlitePlatform.SQLiteApi.ColumnType(stmt, 0);
+                            var clrType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+                            if (colType != ColType.Null)
+                            {
+                                val = (T)ReadCol(stmt, 0, colType, clrType);
+                            }
+                        }
+                        else if (r == Result.Done)
+                        {
+                        }
+                        else
+                        {
+                            throw SQLiteException.New(r, _sqlitePlatform.SQLiteApi.Errmsg16(_conn.Handle));
+                        }
+                    }
+                    else
+                    {
+                        rowsAffected += StepNonQuery(stmt);
                     }
                 }
-                else if (r == Result.Done)
+                catch (SQLiteException e)
                 {
+                    throw e;
                 }
-                else
+                finally
                 {
-                    throw SQLiteException.New(r, _sqlitePlatform.SQLiteApi.Errmsg16(_conn.Handle));
+                    Finalize(stmt);
                 }
             }
-            finally
-            {
-                Finalize(stmt);
-            }
-
             return val;
         }
 
         [PublicAPI]
         public void Bind([CanBeNull] string name, [CanBeNull] object val)
         {
-            _bindings.Add(new Binding
+            if (!string.IsNullOrEmpty(name))
             {
-                Name = name,
-                Value = val
-            });
+                if (!_namedBindings.ContainsKey(name))
+                {
+                    var b = new Binding
+                    {
+                        Name = name,
+                        Value = val
+                    };
+
+                    _namedBindings.Add(name, b);
+                    _bindings.Add(b);
+                }
+                else
+                {
+                    _namedBindings[name].Value = val;
+                }
+            }
+            else
+            {
+                _bindings.Add(new Binding
+                {
+                    Name = name,
+                    Value = val
+                });
+            }
         }
 
         [PublicAPI]
@@ -224,9 +278,30 @@ namespace SQLite.Net
 
         private IDbStatement Prepare()
         {
-            var stmt = _sqlitePlatform.SQLiteApi.Prepare2(_conn.Handle, CommandText);
+            var stmt = _sqlitePlatform.SQLiteApi.Prepare2(_conn.Handle, ref _remainingText);
             BindAll(stmt);
             return stmt;
+        }
+
+        private int StepNonQuery(IDbStatement stmt)
+        {
+            var r = _sqlitePlatform.SQLiteApi.Step(stmt);
+            if (r == Result.Done)
+            {
+                int rowsAffected = _sqlitePlatform.SQLiteApi.Changes(_conn.Handle);
+                return rowsAffected;
+            }
+            if (r == Result.Error) {
+                throw SQLiteException.New (r, _sqlitePlatform.SQLiteApi.Errmsg16(_conn.Handle));
+			}
+            if (r == Result.Constraint)
+            {
+                if (_sqlitePlatform.SQLiteApi.ExtendedErrCode(_conn.Handle) == ExtendedResult.ConstraintNotNull)
+                {
+                    throw NotNullConstraintViolationException.New(r, _sqlitePlatform.SQLiteApi.Errmsg16(_conn.Handle));
+                }
+            }
+            throw SQLiteException.New(r, r.ToString());
         }
 
         private void Finalize(IDbStatement stmt)
