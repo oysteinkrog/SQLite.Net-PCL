@@ -187,13 +187,15 @@ namespace SQLite.Net.Tests
             var tasks = new List<Task>();
             for (int i = 0; i < n; i++)
             {
+                int taskId = i;
+
                 tasks.Add(Task.Factory.StartNew(async delegate
                 {
-                    string taskDesc = "";
+                    string taskStep = "";
 
                     try
                     {
-                        taskDesc = "CONNECT";
+                        taskStep = "CONNECT";
                         SQLiteAsyncConnection conn = GetAsyncConnection();
 
                         // each connection retains the global journal_mode but somehow resets busy_timeout to 100
@@ -203,10 +205,10 @@ namespace SQLite.Net.Tests
 
                         var obj = new Customer
                         {
-                            FirstName = i.ToString(),
+                            FirstName = taskId.ToString(),
                         };
 
-                        taskDesc = "INSERT";
+                        taskStep = "INSERT";
                         await conn.InsertAsync(obj);
 
                         if (obj.Id == 0)
@@ -217,7 +219,7 @@ namespace SQLite.Net.Tests
                             }
                         }
 
-                        taskDesc = "SELECT";
+                        taskStep = "SELECT";
                         var obj3 = await (from c in conn.Table<Customer>() where c.Id == obj.Id select c).ToListAsync();
                         Customer obj2 = obj3.FirstOrDefault();
                         if (obj2 == null)
@@ -227,12 +229,14 @@ namespace SQLite.Net.Tests
                                 errors.Add("Failed query");
                             }
                         }
+
+//                        Debug.WriteLine("{0} {1} {2}", taskId, obj.Id, obj.FirstName);
                     }
                     catch (Exception ex)
                     {
                         lock (errors)
                         {
-                            errors.Add(string.Format("{0}: {1}", taskDesc, ex.Message));
+                            errors.Add(string.Format("{0}: {1}", taskStep, ex.Message));
                         }
                     }
                 }));
@@ -240,17 +244,20 @@ namespace SQLite.Net.Tests
 
             await Task.WhenAll(tasks);
 
-            int j = 0;
-            foreach (var error in errors)
-            {
-                Debug.WriteLine("{0} {1}", j++, error);
-            }
+            //int j = 0;
+            //foreach (var error in errors)
+            //{
+            //    Debug.WriteLine("{0} {1}", j++, error);
+            //}
 
-            Assert.AreEqual(0, errors.Count);
+            Assert.AreEqual(0, errors.Count, "Error in task runs");
 
-            // could be locked
+            await Task.Delay(200);
             int count = await globalConn.Table<Customer>().CountAsync();
-            Assert.AreEqual(n, count);
+            Assert.AreEqual(n, count, "Not enough items in table");
+
+            // TODO: get out of wal mode - currently fails with 'database is locked'
+//            journalMode = await globalConn.ExecuteScalarAsync<string>("PRAGMA journal_mode = delete");
         }
 
         [Test]
