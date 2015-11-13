@@ -332,7 +332,7 @@ namespace SQLite.Net.Tests
                 {
                     if (t == typeof(DivideByZeroException))
                     {
-#if __WINRT__ || WINDOWS_PHONE
+#if __WINRT__ || WINDOWS_PHONE || NETFX_CORE
                         var json = Encoding.UTF8.GetString(d, 0, d.Length);
 #else
                         var json = Encoding.UTF8.GetString(d);
