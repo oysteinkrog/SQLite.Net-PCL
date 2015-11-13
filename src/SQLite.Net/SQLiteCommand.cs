@@ -29,6 +29,7 @@ using System.Reflection;
 using System.Text;
 using JetBrains.Annotations;
 using SQLite.Net.Interop;
+using System.Dynamic;
 
 namespace SQLite.Net
 {
@@ -158,6 +159,101 @@ namespace SQLite.Net
                             OnInstanceCreated(obj);
                             yield return (T)obj;
                         }                        
+                    }
+                    else
+                    {
+                        rowsAffected += StepNonQuery(stmt);
+                    }
+                }
+                finally
+                {
+                    Finalize(stmt);
+                }
+            }
+        }
+
+        [PublicAPI]
+        public IEnumerable<dynamic> ExecuteDeferredQuery()
+        {
+            _conn.TraceListener.WriteLine("Executing Query: {0}", this);
+
+            int rowsAffected = 0;
+            _remainingText = CommandText.Trim().TrimEnd(';');
+
+            while (!string.IsNullOrEmpty(_remainingText))
+            {
+                var stmt = Prepare();
+                try
+                {
+                    var cols = new string[_sqlitePlatform.SQLiteApi.ColumnCount(stmt)];
+
+                    if (cols.Length > 0)
+                    {
+                        for (var i = 0; i < cols.Length; i++)
+                        {
+                            var name = _sqlitePlatform.SQLiteApi.ColumnName16(stmt, i);
+                            cols[i] = name;
+                        }
+
+                        while (_sqlitePlatform.SQLiteApi.Step(stmt) == Result.Row)
+                        {
+                            var obj = new DynamicObject();
+                            for (var i = 0; i < cols.Length; i++)
+                            {
+                                if (cols[i] == null)
+                                {
+                                    continue;
+                                }
+                                var colType = _sqlitePlatform.SQLiteApi.ColumnType(stmt, i);
+
+                                Type targetType;
+                                switch (colType)
+                                {
+                                    case ColType.Text:
+                                        targetType = typeof(string);
+                                        break;
+                                    case ColType.Integer:
+                                        targetType = typeof(int);       // what about uint, long, ulong?
+                                        break;
+                                    case ColType.Float:
+                                        targetType = typeof(double);
+                                        break;
+                                    case ColType.Blob:
+                                        targetType = typeof(byte[]);    // not a lot of options on this one
+                                        break;
+                                    default:
+                                        targetType = typeof(object);
+                                        break;
+                                }
+
+                                var val = ReadCol(stmt, i, colType, targetType);
+                                
+                                if (colType == ColType.Integer)
+                                {
+                                    if ((int)val == int.MaxValue)       // too big?
+                                    {
+                                        val = ReadCol(stmt, i, colType, typeof(uint));
+
+                                        if ((uint)val == uint.MaxValue)
+                                        {
+                                            val = ReadCol(stmt, i, colType, typeof(long));
+
+                                            if ((long)val == long.MaxValue)
+                                            {
+                                                val = ReadCol(stmt, i, colType, typeof(ulong));
+                                            }
+                                        }
+                                    }
+                                    else if ((int)val == int.MinValue)  // negative
+                                    {
+                                        ReadCol(stmt, i, colType, typeof(long));
+                                    }
+                                }
+                                obj.AddProperty(cols[i], val);
+                            }
+                            OnInstanceCreated(obj);
+                            yield return obj;
+                        }
                     }
                     else
                     {
