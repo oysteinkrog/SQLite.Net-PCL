@@ -36,6 +36,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)LinqTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MappingTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MigrationTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MultiQueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NotNullAttributeTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NullableTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)OpenTests.cs" />
