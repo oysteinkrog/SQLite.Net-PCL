@@ -103,6 +103,12 @@ namespace SQLite.Net
             return ExecuteDeferredQuery<T>(map).ToList();
         }
 
+        [PublicAPI]
+        public List<dynamic> ExecuteQuery()
+        {
+            return ExecuteDeferredQuery().ToList();
+        }
+
         /// <summary>
         ///     Invoked every time an instance is loaded from the database.
         /// </summary>
@@ -197,7 +203,7 @@ namespace SQLite.Net
 
                         while (_sqlitePlatform.SQLiteApi.Step(stmt) == Result.Row)
                         {
-                            var obj = new DynamicObject();
+                            var obj = new ExpandoObject() as IDictionary<string, Object>;
                             for (var i = 0; i < cols.Length; i++)
                             {
                                 if (cols[i] == null)
@@ -249,7 +255,8 @@ namespace SQLite.Net
                                         ReadCol(stmt, i, colType, typeof(long));
                                     }
                                 }
-                                obj.AddProperty(cols[i], val);
+
+                                obj.Add(cols[i], val);
                             }
                             OnInstanceCreated(obj);
                             yield return obj;

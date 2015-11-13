@@ -6,7 +6,7 @@
     <SharedGUID>7f2fac8e-9a6a-4f36-a4bb-4c7a5f44f810</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>SQLite.Net.Tests.Shared</Import_RootNamespace>
+    <Import_RootNamespace>SQLite.Net.Tests</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ArithmeticTest.cs" />
@@ -25,6 +25,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)DefaulAttributeTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DeleteTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DropTableTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DynamicTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EqualsTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ExceptionAssert.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ExpressionTests.cs" />

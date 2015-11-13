@@ -21,7 +21,6 @@ namespace SQLite.Net.Tests
             var p2 = new Product { Name = "Two", };
             var p3 = new Product { Name = "Three", };
             _db.InsertAll(new[] { p1, p2, p3 });
-
         }
 
         [Test]

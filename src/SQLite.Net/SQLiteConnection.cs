@@ -747,6 +747,13 @@ namespace SQLite.Net
             return cmd.ExecuteDeferredQuery<T>();
         }
 
+        [PublicAPI]
+        public IEnumerable<dynamic> DeferredQuery(string query, params object[] args)
+        {
+            var cmd = CreateCommand(query, args);
+            return cmd.ExecuteDeferredQuery();
+        }
+
         /// <summary>
         ///     Creates a SQLiteCommand given the command text (SQL) with arguments. Place a '?'
         ///     in the command text for each of the arguments and then executes that command.
@@ -772,6 +779,13 @@ namespace SQLite.Net
         {
             var cmd = CreateCommand(query, args);
             return cmd.ExecuteQuery<object>(map);
+        }
+
+        [PublicAPI]
+        public List<dynamic> Query(string query, params object[] args)
+        {
+            var cmd = CreateCommand(query, args);
+            return cmd.ExecuteQuery();
         }
 
         /// <summary>
