@@ -128,6 +128,10 @@
       <Project>{3ab34e91-8e1a-442f-8e66-2494b371a890}</Project>
       <Name>SQLite.Net.Async</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\src\SQLite.Net.Platform.WinRT\SQLite.Net.Platform.WinRT.csproj">
+      <Project>{7c0cd716-440f-4f08-97fa-f9af5bd80214}</Project>
+      <Name>SQLite.Net.Platform.WinRT</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\src\SQLite.Net\SQLite.Net.csproj">
       <Project>{4971d437-0694-4297-a8cc-146ce08c3bd9}</Project>
       <Name>SQLite.Net</Name>
