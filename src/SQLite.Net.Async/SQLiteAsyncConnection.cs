@@ -61,6 +61,16 @@ namespace SQLite.Net.Async
         }
 
         [PublicAPI]
+        public void Close()
+        {
+            var conn = GetConnection();
+            using (conn.Lock())
+            {
+                conn.Close();
+            }
+        }
+
+        [PublicAPI]
         public Task<CreateTablesResult> CreateTableAsync<T>(CancellationToken cancellationToken = default (CancellationToken))
             where T : class
         {
