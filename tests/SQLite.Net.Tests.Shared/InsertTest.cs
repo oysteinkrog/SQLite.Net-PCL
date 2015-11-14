@@ -78,6 +78,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
+        [Timeout(Int32.MaxValue)]
         public void InsertALot()
         {
             int n = 10000;

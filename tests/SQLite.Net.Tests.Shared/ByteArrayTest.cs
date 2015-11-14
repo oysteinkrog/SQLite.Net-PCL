@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using NUnit.Framework;
 using SQLite.Net.Attributes;
+using System;
 
 namespace SQLite.Net.Tests
 {
@@ -174,6 +175,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
+        [Timeout(Int32.MaxValue)]
         [Description("Create A large byte array and check it can be stored and retrieved correctly")]
         public void LargeByteArray()
         {

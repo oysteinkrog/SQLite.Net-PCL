@@ -51,6 +51,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
+        [Timeout(Int32.MaxValue)]
         public async Task TestTimeSpan()
         {
             var sqLiteConnectionString = new SQLiteConnectionString(TestPath.CreateTemporaryDatabase(), true);

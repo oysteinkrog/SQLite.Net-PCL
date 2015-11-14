@@ -74,6 +74,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
+        [Timeout(Int32.MaxValue)]
         public async Task AsyncAsString()
         {
             var sqLiteConnectionString = new SQLiteConnectionString(TestPath.CreateTemporaryDatabase(), false);
@@ -82,6 +83,7 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
+        [Timeout(Int32.MaxValue)]
         public async Task AsyncAsTicks()
         {
             var sqLiteConnectionString = new SQLiteConnectionString(TestPath.CreateTemporaryDatabase(), true);

@@ -65,14 +65,12 @@ namespace SQLite.Net.Tests
         public void SetUp()
         {
             var databaseFile = TestPath.CreateTemporaryDatabase();
-
             _connectionParameters = new SQLiteConnectionString(databaseFile, false);
         }
 
         [TearDown]
         public void TearDown()
         {
-         
         }
 
         private SQLiteConnectionString _connectionParameters;
