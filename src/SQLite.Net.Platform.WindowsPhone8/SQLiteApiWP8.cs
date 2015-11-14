@@ -79,7 +79,7 @@ namespace SQLite.Net.Platform.WindowsPhone8
         }
 
 
-        public IDbStatement Prepare2(IDbHandle db, string query)
+        public IDbStatement Prepare2(IDbHandle db, ref string query)
         {
             var dbHandle = (DbHandle) db;
             var stmt = default(Statement);
