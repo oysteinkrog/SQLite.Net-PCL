@@ -1,0 +1,29 @@
+iOS test notes
+
+General notes
+- Async tests must be prefaced with [Timeout(Int32.MaxValue)] otherwise the UI will freeze (as normal tests run in UI thread), [Timeout(Int32.MaxValue)] forces the TestRunner to run in a new thread
+- iOS simulator has issue with 'System.IO.IOException : Too many open files' if Run All is pressed, this could also be an indication that tests are not being cleaned up, although, it may just be running too many tests at once
+- TestRunner has bug, the second Run All by category leads to 'System.Reflection.TargetException : Object of type 'SQLite.Net.Tests.(prev test)' does not match target type 'SQLite.Net.Tests.(curr test)'. Work around is to restart for each category, or run each test individually, both not satisfactory
+- Certain long tests, like CreateBackup, LargeByteArray, InsertALot insert should also have [Timeout(Int32.MaxValue)]
+
+AsyncTests
+- StressAsync, fails with 40-60/100 errors, same on iOS device - watch out as it crashes the test app with Too Many Open Files on the next test
+
+BlobDelegateTest
+- VerifyTableCreationSucceesWithSupportedSerializer, 'Serialize does not support this data type'
+- SavesUnsupportedTypes, 'Expected string length 9 but was 28. Strings differ at index 0. Expected: "a message" But was "Attempted to divide by zero."', somehow the message is not making it through
+
+ConnectionTests
+- CreateThem, 'System.NotSupportedException : Don't know about SQLite.Net.Tests.ConnectionTrackingTest+TestDb'
+
+DynamicTest (expected, iOS/Android do not support dynamic keyword)
+- CheckEpandoObject, 'System.NotImplementedException : INterpreter of ref types'
+- DynamicSelect, 'System.NotImplementedException : INterpreter of ref types'
+- (in iOS device fails with ArgumentNullException)
+
+
+TestRunner wishlist
+- Run All tests by category
+- or Run All, but run one category at a time
+- or Run All, each test at a time
+
