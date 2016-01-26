@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using SQLite.Net.Attributes;
@@ -16,12 +17,27 @@ namespace SQLite.Net.Tests
             public string Test { get; set; }
         }
 
+        private class TestTableCompositeKey
+        {
+            [PrimaryKey]
+            public int Id { get; set; }
+
+            [PrimaryKey]
+            public int TestIndex { get; set; }
+
+            public int Datum { get; set; }
+            public string Test { get; set; }
+        }
+
         private const int Count = 100;
 
         private SQLiteConnection CreateDb()
         {
             var db = new TestDb();
+
             db.CreateTable<TestTable>();
+            db.CreateTable<TestTableCompositeKey>();
+
             var items =
                 from i in Enumerable.Range(0, Count)
                 select new TestTable
@@ -31,7 +47,20 @@ namespace SQLite.Net.Tests
                 }
                 ;
             db.InsertAll(items);
-            Assert.AreEqual(Count, db.Table<TestTable>().Count());
+
+            var itemsCompositeKey =
+                from i in Enumerable.Range(0, Count)
+                select new TestTableCompositeKey
+                {
+                    Datum = 1000 + i,
+                    Test = "Hello World",
+                    Id = i,
+                    TestIndex = i + 1
+                }
+                ;
+            db.InsertAll(itemsCompositeKey);
+            Assert.AreEqual(Count, db.Table<TestTableCompositeKey>().Count());
+
             return db;
         }
 
@@ -128,6 +157,36 @@ namespace SQLite.Net.Tests
 
             Assert.AreEqual(1, r);
             Assert.AreEqual(Count - 1, db.Table<TestTable>().Count());
+        }
+
+        [Test]
+        public void DeletePKNoneComposite()
+        {
+            var db = CreateDb();
+
+            var compositePK = new Dictionary<string, object>();
+            compositePK.Add("Id", 348597);
+            compositePK.Add("TestIndex", 348598);
+
+            var r = db.Delete<TestTableCompositeKey>(compositePK);
+
+            Assert.AreEqual(0, r);
+            Assert.AreEqual(Count, db.Table<TestTableCompositeKey>().Count());
+        }
+
+        [Test]
+        public void DeletePKOneComposite()
+        {
+            var db = CreateDb();
+
+            var compositePK = new Dictionary<string, object>();
+            compositePK.Add("Id", 1);
+            compositePK.Add("TestIndex", 2);
+
+            var r = db.Delete<TestTableCompositeKey>(compositePK);
+
+            Assert.AreEqual(1, r);
+            Assert.AreEqual(Count - 1, db.Table<TestTableCompositeKey>().Count());
         }
     }
 }

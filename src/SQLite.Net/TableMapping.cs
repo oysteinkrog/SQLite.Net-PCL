@@ -34,6 +34,7 @@ namespace SQLite.Net
     {
         private readonly Column _autoPk;
         private Column[] _insertColumns;
+        private Column _pk;
 
         [PublicAPI]
         public TableMapping(Type type, IEnumerable<PropertyInfo> properties, CreateFlags createFlags = CreateFlags.None)
@@ -57,23 +58,40 @@ namespace SQLite.Net
                 }
             }
             Columns = cols.ToArray();
-            foreach (var c in Columns)
+            CompositePK = Columns.Where(col => col.IsPK).ToArray();
+
+            if (CompositePK.Length > 1)
             {
-                if (c.IsAutoInc && c.IsPK)
-                {
-                    _autoPk = c;
-                }
-                if (c.IsPK)
-                {
-                    PK = c;
-                }
+                HasCompositePK = true;
             }
 
-            HasAutoIncPK = _autoPk != null;
-
-            if (PK != null)
+            if (!HasCompositePK)
             {
-                GetByPrimaryKeySql = string.Format("select * from \"{0}\" where \"{1}\" = ?", TableName, PK.Name);
+                foreach (var c in Columns)
+                {
+                    if (c.IsAutoInc && c.IsPK)
+                    {
+                        _autoPk = c;
+                    }
+
+                    if (c.IsPK)
+                    {
+                        _pk = c;
+                    }
+                }
+
+                HasAutoIncPK = _autoPk != null;
+            }
+
+            if (CompositePK.Length > 1)
+            {
+                string compositePKString = string.Join(" and ", CompositePK.Select(pk => "\"" + pk.Name + "\" = ? "));
+                GetByPrimaryKeySql = string.Format("select * from \"{0}\" where {1}", TableName, compositePKString);
+            }
+            else if (PK != null)
+            {
+                string pkString = PK.Name;
+                GetByPrimaryKeySql = string.Format("select * from \"{0}\" where \"{1}\" = ?", TableName, pkString);
             }
             else
             {
@@ -92,13 +110,32 @@ namespace SQLite.Net
         public Column[] Columns { get; private set; }
 
         [PublicAPI]
-        public Column PK { get; private set; }
+        public Column PK
+        {
+            get
+            {
+                if (HasCompositePK)
+                {
+                    throw new NotSupportedException("Table has a composite primary key. Use CompositePK property instead.");
+                }
+                else
+                {
+                    return _pk;
+                }
+            }
+        }
+
+        [PublicAPI]
+        public Column[] CompositePK { get; private set; }
 
         [PublicAPI]
         public string GetByPrimaryKeySql { get; private set; }
 
         [PublicAPI]
         public bool HasAutoIncPK { get; private set; }
+
+        [PublicAPI]
+        public bool HasCompositePK { get; private set; }
 
         [PublicAPI]
         public Column[] InsertColumns

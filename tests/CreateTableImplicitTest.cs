@@ -51,6 +51,7 @@ namespace SQLite.Net.Tests
 
             TableMapping mapping = db.GetMapping<PkAttribute>();
 
+            Assert.IsFalse(mapping.HasCompositePK);
             Assert.IsNotNull(mapping.PK);
             Assert.AreEqual("Id", mapping.PK.Name);
             Assert.IsTrue(mapping.PK.IsPK);
@@ -66,6 +67,7 @@ namespace SQLite.Net.Tests
 
             TableMapping mapping = db.GetMapping<PkAttribute>();
 
+            Assert.IsFalse(mapping.HasCompositePK);
             Assert.IsNotNull(mapping.PK);
             Assert.AreEqual("Id", mapping.PK.Name);
             Assert.IsTrue(mapping.PK.IsPK);
@@ -94,6 +96,7 @@ namespace SQLite.Net.Tests
 
             TableMapping mapping = db.GetMapping<NoAttributes>();
 
+            Assert.IsFalse(mapping.HasCompositePK);
             Assert.IsNotNull(mapping.PK);
             Assert.AreEqual("Id", mapping.PK.Name);
             Assert.IsTrue(mapping.PK.IsPK);
@@ -111,6 +114,7 @@ namespace SQLite.Net.Tests
 
             TableMapping mapping = db.GetMapping<NoAttributes>();
 
+            Assert.IsFalse(mapping.HasCompositePK);
             Assert.IsNotNull(mapping.PK);
             Assert.AreEqual("Id", mapping.PK.Name);
             Assert.IsTrue(mapping.PK.IsPK);
@@ -126,6 +130,7 @@ namespace SQLite.Net.Tests
 
             TableMapping mapping = db.GetMapping<NoAttributes>();
 
+            Assert.IsFalse(mapping.HasCompositePK);
             Assert.IsNotNull(mapping.PK);
             Assert.AreEqual("Id", mapping.PK.Name);
             Assert.IsTrue(mapping.PK.IsPK);
@@ -141,6 +146,7 @@ namespace SQLite.Net.Tests
 
             TableMapping mapping = db.GetMapping<NoAttributes>();
 
+            Assert.IsFalse(mapping.HasCompositePK);
             Assert.IsNotNull(mapping.PK);
             Assert.AreEqual("Id", mapping.PK.Name);
             Assert.IsTrue(mapping.PK.IsPK);
@@ -156,6 +162,7 @@ namespace SQLite.Net.Tests
 
             TableMapping mapping = db.GetMapping<NoAttributes>();
 
+            Assert.IsFalse(mapping.HasCompositePK);
             Assert.IsNull(mapping.PK);
 
             TableMapping.Column column = mapping.Columns[2];

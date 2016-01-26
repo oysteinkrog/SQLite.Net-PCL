@@ -37,11 +37,11 @@ namespace SQLite.Net
         public const string ImplicitIndexSuffix = "Id";
 
         internal static string SqlDecl(TableMapping.Column p, bool storeDateTimeAsTicks, IBlobSerializer serializer,
-            IDictionary<Type, string> extraTypeMappings)
+            IDictionary<Type, string> extraTypeMappings, bool hasCompositePK = false)
         {
             var decl = "\"" + p.Name + "\" " + SqlType(p, storeDateTimeAsTicks, serializer, extraTypeMappings) + " ";
 
-            if (p.IsPK)
+            if (p.IsPK && !hasCompositePK)
             {
                 decl += "primary key ";
             }
