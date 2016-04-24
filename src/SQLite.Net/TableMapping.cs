@@ -131,6 +131,8 @@ namespace SQLite.Net
         public class Column
         {
             private readonly PropertyInfo _prop;
+            private PropertyExtensions.Getter<object, object> getter;
+            private PropertyExtensions.Setter<object, object> setter;
 
             [PublicAPI]
             public Column(PropertyInfo prop, CreateFlags createFlags = CreateFlags.None)
@@ -211,6 +213,11 @@ namespace SQLite.Net
             [PublicAPI]
             public void SetValue(object obj, [CanBeNull] object val)
             {
+                if (this.setter == null)
+                {
+                    this.setter = this._prop.CompileSetter();
+                }
+
                 var propType = _prop.PropertyType;
 
                 var enumType = Nullable.GetUnderlyingType(propType) ?? propType;
@@ -220,7 +227,7 @@ namespace SQLite.Net
                 }
                 else
                 {
-                    this._prop.SetValue(obj, val, null);
+                    this.setter.Set(obj, val);
                 }
             }
 
@@ -230,14 +237,19 @@ namespace SQLite.Net
                 if (result != null)
                 {
                     result = Enum.ToObject(type, result);
-                    _prop.SetValue(obj, result, null);
+                    this.setter.Set(obj, result);
                 }
             }
 
             [PublicAPI]
             public object GetValue(object obj)
             {
-                return _prop.GetValue(obj, null);
+                if (this.getter == null)
+                {
+                    this.getter = this._prop.CompileGetter();
+                }
+
+                return this.getter.Get(obj);
             }
         }
     }
