@@ -49,9 +49,8 @@ namespace SQLite.Net
             var cols = new List<Column>();
             foreach (var p in props)
             {
-                var ignore = p.IsDefined(typeof(IgnoreAttribute), true);
-
-                if (p.CanWrite && !ignore)
+                if (p.CanWrite && p.CanRead && !p.IsDefined(typeof(IgnoreAttribute), true) &&
+                    !(p.CanRead ? p.GetMethod : p.SetMethod).IsStatic) // sure is not static property
                 {
                     cols.Add(new Column(p, createFlags));
                 }
