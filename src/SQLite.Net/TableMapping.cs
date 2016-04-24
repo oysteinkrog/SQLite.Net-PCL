@@ -212,32 +212,15 @@ namespace SQLite.Net
             public void SetValue(object obj, [CanBeNull] object val)
             {
                 var propType = _prop.PropertyType;
-                var typeInfo = propType.GetTypeInfo();
 
-                if (typeInfo.IsGenericType && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                var enumType = Nullable.GetUnderlyingType(propType) ?? propType;
+                if (enumType.GetTypeInfo().IsEnum)
                 {
-                    var typeCol = propType.GetTypeInfo().GenericTypeArguments;
-                    if (typeCol.Length > 0)
-                    {
-                        var nullableType = typeCol[0];
-                        var baseType = nullableType.GetTypeInfo().BaseType;
-                        if (baseType == typeof(Enum))
-                        {
-                            SetEnumValue(obj, nullableType, val);
-                        }
-                        else
-                        {
-                            _prop.SetValue(obj, val, null);
-                        }
-                    }
-                }
-                else if (typeInfo.BaseType == typeof(Enum))
-                {
-                    SetEnumValue(obj, propType, val);
+                    this.SetEnumValue(obj, enumType, val);
                 }
                 else
                 {
-                    _prop.SetValue(obj, val, null);
+                    this._prop.SetValue(obj, val, null);
                 }
             }
 
