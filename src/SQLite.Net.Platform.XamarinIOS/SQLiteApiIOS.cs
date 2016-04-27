@@ -62,7 +62,7 @@ namespace SQLite.Net.Platform.XamarinIOS {
 			IntPtr stmt;
 			Result r = SQLiteApiIOSInternal.sqlite3_prepare_v2(internalDbHandle.DbPtr,
 			                                                            query,
-			                                                            query.Length,
+			                                                            -1,
 			                                                            out stmt,
 			                                                            IntPtr.Zero);
 			if(r != Result.OK) {
