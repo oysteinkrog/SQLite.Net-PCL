@@ -204,7 +204,7 @@ namespace SQLite.Net.Platform.WinRT
         {
             var dbHandle = (DbHandle)db;
             var stmt = default(Sqlite3Statement);
-            var r = SQLite3.Prepare2(dbHandle.InternalDbHandle, query, query.Length, out stmt, IntPtr.Zero);
+            var r = SQLite3.Prepare2(dbHandle.InternalDbHandle, query, -1, out stmt, IntPtr.Zero);
             if (r != Result.OK)
             {
                 throw SQLiteException.New(r, SQLite3.GetErrmsg(dbHandle.InternalDbHandle));
