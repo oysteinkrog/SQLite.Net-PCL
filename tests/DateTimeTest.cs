@@ -17,6 +17,7 @@ namespace SQLite.Net.Tests
             public string Name { get; set; }
             public DateTime Time1 { get; set; }
             public DateTime Time2 { get; set; }
+            public DateTime Time3 { get; set; }
         }
 
 
@@ -28,6 +29,7 @@ namespace SQLite.Net.Tests
             {
                 Time1 = DateTime.UtcNow,
                 Time2 = DateTime.Now,
+                Time3 = DateTime.MinValue
             };
             await db.InsertAsync(org);
             var fromDb = await db.GetAsync<TestObj>(org.Id);
@@ -36,6 +38,8 @@ namespace SQLite.Net.Tests
 
             Assert.AreEqual(fromDb.Time1.ToLocalTime(), org.Time1.ToLocalTime());
             Assert.AreEqual(fromDb.Time2.ToLocalTime(), org.Time2.ToLocalTime());
+
+            Assert.AreEqual(fromDb.Time3, org.Time3);
         }
 
         private void TestDateTime(TestDb db)
@@ -49,6 +53,7 @@ namespace SQLite.Net.Tests
             {
                 Time1 = DateTime.UtcNow,
                 Time2 = DateTime.Now,
+                Time3 = DateTime.MinValue
             };
             db.Insert(org);
             var fromDb = db.Get<TestObj>(org.Id);
