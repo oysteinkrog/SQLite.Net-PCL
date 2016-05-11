@@ -92,5 +92,28 @@ namespace SQLite.Net.Tests
 
             Assert.That(numCats,Is.EqualTo(1), "The resulting num cats should be 1.");
         }
+
+        [Test]
+        public void CanUsePrivateDecoratedProperties()
+        {
+            var db = new TestDb();
+
+            db.CreateTable<AccessorTable>();
+
+            TableMapping mapping = db.GetMapping<AccessorTable>();
+
+            Assert.AreEqual(mapping.Columns.Length, 2);
+
+            Assert.AreEqual("Public", mapping.Columns[0].Name);
+            Assert.AreEqual("Private", mapping.Columns[1].Name);
+        }
+
+
+        [Table("accessor")]
+        public class AccessorTable {
+            public int Public { get; set; }
+            [Column]
+            private int Private { get; set; }
+        }
     }
 }
