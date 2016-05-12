@@ -31,6 +31,7 @@ namespace SQLite.Net.Interop
     public interface IReflectionService
     {
         IEnumerable<PropertyInfo> GetPublicInstanceProperties(Type mappedType);
+        IEnumerable<PropertyInfo> GetDecoratedPrivateInstanceProperties(Type mappedType, Type attributeType);
         object GetMemberValue(object obj, Expression expr, MemberInfo member);
     }
 }

@@ -140,7 +140,7 @@ namespace SQLite.Net
                     prop.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault();
 
                 _prop = prop;
-                Name = colAttr == null ? prop.Name : colAttr.Name;
+                Name = colAttr?.Name ?? prop.Name;
                 //If this type is Nullable<T> then Nullable.GetUnderlyingType returns the T, otherwise it returns null, so get the actual type instead
                 ColumnType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
                 Collation = Orm.Collation(prop);

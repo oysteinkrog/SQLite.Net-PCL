@@ -29,6 +29,8 @@ namespace SQLite.Net.Attributes
     [AttributeUsage(AttributeTargets.Property)]
     public class ColumnAttribute : Attribute
     {
+        public ColumnAttribute() { }
+
         public ColumnAttribute(string name)
         {
             Name = name;

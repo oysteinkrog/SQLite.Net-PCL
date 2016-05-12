@@ -310,10 +310,13 @@ namespace SQLite.Net
 
         private TableMapping CreateAndSetMapping(Type type, CreateFlags createFlags, IDictionary<string, TableMapping> mapTable)
         {
-            var props = Platform.ReflectionService.GetPublicInstanceProperties(type);
+            var props = Platform.ReflectionService.GetPublicInstanceProperties(type).Union(
+                Platform.ReflectionService.GetDecoratedPrivateInstanceProperties(type, typeof(ColumnAttribute))
+            );
+
             var map = new TableMapping(type, props, createFlags);
-	            mapTable[type.FullName] = map;
-            	return map;
+	        mapTable[type.FullName] = map;
+            return map;
         }
 
         /// <summary>
