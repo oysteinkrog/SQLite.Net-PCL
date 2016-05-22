@@ -88,6 +88,7 @@
     <Compile Include="Interop\Result.cs" />
     <Compile Include="Interop\IDbStatement.cs" />
     <Compile Include="IBlobSerializer.cs" />
+    <Compile Include="ITableMappingManager.cs" />
     <Compile Include="NotNullConstraintViolationException.cs" />
     <Compile Include="Orm.cs" />
     <Compile Include="PreparedSqlLiteInsertCommand.cs" />
@@ -100,6 +101,7 @@
     <Compile Include="Attributes\IndexedAttribute.cs" />
     <Compile Include="Attributes\MaxLengthAttribute.cs" />
     <Compile Include="Attributes\PrimaryKeyAttribute.cs" />
+    <Compile Include="PropertyExtensions.cs" />
     <Compile Include="SQLiteException.cs" />
     <Compile Include="SQLiteCommand.cs" />
     <Compile Include="SQLiteConnection.cs" />
@@ -107,6 +109,7 @@
     <Compile Include="SQLiteConnectionString.cs" />
     <Compile Include="SQLiteConnectionWithLock.cs" />
     <Compile Include="TableMapping.cs" />
+    <Compile Include="TableMappingManager.cs" />
     <Compile Include="TableQuery.cs" />
     <Compile Include="Interop\SQLiteOpenFlags.cs" />
     <Compile Include="Attributes\TableAttribute.cs" />

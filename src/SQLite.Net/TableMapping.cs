@@ -42,16 +42,15 @@ namespace SQLite.Net
 
             var tableAttr = type.GetTypeInfo().GetCustomAttributes<TableAttribute>().FirstOrDefault();
 
-            TableName = tableAttr != null ?  tableAttr.Name : MappedType.Name;
+            TableName = tableAttr != null ? tableAttr.Name : MappedType.Name;
 
             var props = properties;
 
             var cols = new List<Column>();
             foreach (var p in props)
             {
-                var ignore = p.IsDefined(typeof (IgnoreAttribute), true);
-
-                if (p.CanWrite && !ignore)
+                if (p.CanWrite && p.CanRead && !p.IsDefined(typeof(IgnoreAttribute), true) &&
+                    !(p.CanRead ? p.GetMethod : p.SetMethod).IsStatic) // sure is not static property
                 {
                     cols.Add(new Column(p, createFlags));
                 }
@@ -132,6 +131,8 @@ namespace SQLite.Net
         public class Column
         {
             private readonly PropertyInfo _prop;
+            private PropertyExtensions.Getter<object, object> getter;
+            private PropertyExtensions.Setter<object, object> setter;
 
             [PublicAPI]
             public Column(PropertyInfo prop, CreateFlags createFlags = CreateFlags.None)
@@ -151,7 +152,7 @@ namespace SQLite.Net
 
                 var isAuto = Orm.IsAutoInc(prop) ||
                              (IsPK && ((createFlags & CreateFlags.AutoIncPK) == CreateFlags.AutoIncPK));
-                IsAutoGuid = isAuto && ColumnType == typeof (Guid);
+                IsAutoGuid = isAuto && ColumnType == typeof(Guid);
                 IsAutoInc = isAuto && !IsAutoGuid;
 
                 DefaultValue = Orm.GetDefaultValue(prop);
@@ -162,7 +163,7 @@ namespace SQLite.Net
                     && ((createFlags & CreateFlags.ImplicitIndex) == CreateFlags.ImplicitIndex)
                     && Name.EndsWith(Orm.ImplicitIndexSuffix, StringComparison.OrdinalIgnoreCase))
                 {
-                    Indices = new[] {new IndexedAttribute()};
+                    Indices = new[] { new IndexedAttribute() };
                 }
                 IsNullable = !(IsPK || Orm.IsMarkedNotNull(prop));
                 MaxStringLength = Orm.MaxStringLength(prop);
@@ -212,33 +213,21 @@ namespace SQLite.Net
             [PublicAPI]
             public void SetValue(object obj, [CanBeNull] object val)
             {
-                var propType = _prop.PropertyType;
-                var typeInfo = propType.GetTypeInfo();
-
-                if (typeInfo.IsGenericType && propType.GetGenericTypeDefinition() == typeof (Nullable<>))
+                if (this.setter == null)
                 {
-                    var typeCol = propType.GetTypeInfo().GenericTypeArguments;
-                    if (typeCol.Length > 0)
-                    {
-                        var nullableType = typeCol[0];
-                        var baseType = nullableType.GetTypeInfo().BaseType;
-                        if (baseType == typeof (Enum))
-                        {
-                            SetEnumValue(obj, nullableType, val);
-                        }
-                        else
-                        {
-                            _prop.SetValue(obj, val, null);
-                        }
-                    }
+                    this.setter = this._prop.CompileSetter();
                 }
-                else if (typeInfo.BaseType == typeof (Enum))
+
+                var propType = _prop.PropertyType;
+
+                var enumType = Nullable.GetUnderlyingType(propType) ?? propType;
+                if (enumType.GetTypeInfo().IsEnum)
                 {
-                    SetEnumValue(obj, propType, val);
+                    this.SetEnumValue(obj, enumType, val);
                 }
                 else
                 {
-                    _prop.SetValue(obj, val, null);
+                    this.setter.Set(obj, val);
                 }
             }
 
@@ -248,14 +237,19 @@ namespace SQLite.Net
                 if (result != null)
                 {
                     result = Enum.ToObject(type, result);
-                    _prop.SetValue(obj, result, null);
+                    this.setter.Set(obj, result);
                 }
             }
 
             [PublicAPI]
             public object GetValue(object obj)
             {
-                return _prop.GetValue(obj, null);
+                if (this.getter == null)
+                {
+                    this.getter = this._prop.CompileGetter();
+                }
+
+                return this.getter.Get(obj);
             }
         }
     }

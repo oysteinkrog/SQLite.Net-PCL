@@ -51,8 +51,6 @@ namespace SQLite.Net
         private static bool _preserveDuringLinkMagic;
 #pragma warning restore 649
         private readonly Random _rand = new Random();
-        private readonly IDictionary<string, TableMapping> _tableMappings;
-		private readonly object _tableMappingsLocks;
         private TimeSpan _busyTimeout;
         private long _elapsedMilliseconds;
         private IDictionary<TableMapping, ActiveInsertCommand> _insertCommandCache;
@@ -100,10 +98,14 @@ namespace SQLite.Net
         ///     A contract resovler for resolving interfaces to concreate types during object creation
         /// </param>
         [PublicAPI]
-        public SQLiteConnection([JetBrains.Annotations.NotNull] ISQLitePlatform sqlitePlatform, [JetBrains.Annotations.NotNull] string databasePath,
-            bool storeDateTimeAsTicks = true, [CanBeNull] IBlobSerializer serializer = null, [CanBeNull] IDictionary<string, TableMapping> tableMappings = null,
-            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, [CanBeNull] IContractResolver resolver = null)
-            : this(sqlitePlatform, databasePath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create, storeDateTimeAsTicks,
+        public SQLiteConnection([JetBrains.Annotations.NotNull] ISQLitePlatform sqlitePlatform,
+            [JetBrains.Annotations.NotNull] string databasePath,
+            bool storeDateTimeAsTicks = true, [CanBeNull] IBlobSerializer serializer = null,
+            [CanBeNull] IDictionary<string, TableMapping> tableMappings = null,
+            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null,
+            [CanBeNull] IContractResolver resolver = null)
+            : this(
+                sqlitePlatform, databasePath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create, storeDateTimeAsTicks,
                 serializer, tableMappings, extraTypeMappings, resolver)
         {
         }
@@ -139,21 +141,31 @@ namespace SQLite.Net
         ///     A contract resovler for resolving interfaces to concreate types during object creation
         /// </param>
         [PublicAPI]
-        public SQLiteConnection([JetBrains.Annotations.NotNull] ISQLitePlatform sqlitePlatform, string databasePath, SQLiteOpenFlags openFlags,
-            bool storeDateTimeAsTicks = true, [CanBeNull] IBlobSerializer serializer = null, [CanBeNull] IDictionary<string, TableMapping> tableMappings = null,
+        public SQLiteConnection([JetBrains.Annotations.NotNull] ISQLitePlatform sqlitePlatform, string databasePath,
+            SQLiteOpenFlags openFlags, bool storeDateTimeAsTicks = true, [CanBeNull] IBlobSerializer serializer = null,
+            [CanBeNull] IDictionary<string, TableMapping> tableMappings = null,
             [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, IContractResolver resolver = null)
+            : this(sqlitePlatform, databasePath, openFlags, storeDateTimeAsTicks, serializer,
+                new TableMappingManager(sqlitePlatform, tableMappings, extraTypeMappings),
+                resolver)
+        {
+        }
+
+        [PublicAPI]
+        public SQLiteConnection([JetBrains.Annotations.NotNull] ISQLitePlatform sqlitePlatform, string databasePath,
+            SQLiteOpenFlags openFlags, bool storeDateTimeAsTicks = true,
+            [CanBeNull] IBlobSerializer serializer = null,
+            [CanBeNull] ITableMappingManager tableMappingManager = null,
+            [CanBeNull] IContractResolver resolver = null)
         {
             if (sqlitePlatform == null)
             {
                 throw new ArgumentNullException("sqlitePlatform");
             }
-            ExtraTypeMappings = extraTypeMappings ?? new Dictionary<Type, string>();
+            this.TableMappingManager = tableMappingManager ?? new TableMappingManager(sqlitePlatform);
             Serializer = serializer;
             Platform = sqlitePlatform;
             Resolver = resolver ?? ContractResolver.Current;
-
-            _tableMappings = tableMappings ?? new Dictionary<string, TableMapping>();
-			_tableMappingsLocks = new object();
 
             if (string.IsNullOrEmpty(databasePath))
             {
@@ -164,7 +176,7 @@ namespace SQLite.Net
 
             IDbHandle handle;
             var databasePathAsBytes = GetNullTerminatedUtf8(DatabasePath);
-            var r = Platform.SQLiteApi.Open(databasePathAsBytes, out handle, (int) openFlags, IntPtr.Zero);
+            var r = Platform.SQLiteApi.Open(databasePathAsBytes, out handle, (int)openFlags, IntPtr.Zero);
 
             Handle = handle;
             if (r != Result.OK)
@@ -186,6 +198,8 @@ namespace SQLite.Net
             BusyTimeout = TimeSpan.FromSeconds(0.1);
         }
 
+        public ITableMappingManager TableMappingManager { get; private set; }
+
         [CanBeNull, PublicAPI]
         public IBlobSerializer Serializer { get; private set; }
 
@@ -206,7 +220,10 @@ namespace SQLite.Net
         public bool StoreDateTimeAsTicks { get; private set; }
 
         [JetBrains.Annotations.NotNull, PublicAPI]
-        public IDictionary<Type, string> ExtraTypeMappings { get; private set; }
+        public IDictionary<Type, string> ExtraTypeMappings
+        {
+            get { return this.TableMappingManager.ExtraTypeMappings; }
+        }
 
         [JetBrains.Annotations.NotNull, PublicAPI]
         public IContractResolver Resolver { get; private set; }
@@ -224,7 +241,7 @@ namespace SQLite.Net
                 _busyTimeout = value;
                 if (Handle != NullHandle)
                 {
-                    Platform.SQLiteApi.BusyTimeout(Handle, (int) _busyTimeout.TotalMilliseconds);
+                    Platform.SQLiteApi.BusyTimeout(Handle, (int)_busyTimeout.TotalMilliseconds);
                 }
             }
         }
@@ -237,13 +254,7 @@ namespace SQLite.Net
         [JetBrains.Annotations.NotNull]
         public IEnumerable<TableMapping> TableMappings
         {
-            get
-			{
-				lock (_tableMappingsLocks)
-				{
-					return _tableMappings.Values.ToList();
-				}
-			}
+            get { return this.TableMappingManager.TableMappings; }
         }
 
         /// <summary>
@@ -301,19 +312,7 @@ namespace SQLite.Net
         [PublicAPI]
         public TableMapping GetMapping(Type type, CreateFlags createFlags = CreateFlags.None)
         {
-			lock (_tableMappingsLocks)
-			{
-				TableMapping map;
-				return _tableMappings.TryGetValue(type.FullName, out map) ? map : CreateAndSetMapping(type, createFlags, _tableMappings);
-			}
-        }
-
-        private TableMapping CreateAndSetMapping(Type type, CreateFlags createFlags, IDictionary<string, TableMapping> mapTable)
-        {
-            var props = Platform.ReflectionService.GetPublicInstanceProperties(type);
-            var map = new TableMapping(type, props, createFlags);
-	            mapTable[type.FullName] = map;
-            	return map;
+            return this.TableMappingManager.GetMapping(type, createFlags);
         }
 
         /// <summary>
@@ -326,7 +325,7 @@ namespace SQLite.Net
         [PublicAPI]
         public TableMapping GetMapping<T>()
         {
-            return GetMapping(typeof (T));
+            return GetMapping(typeof(T));
         }
 
         /// <summary>
@@ -335,7 +334,7 @@ namespace SQLite.Net
         [PublicAPI]
         public int DropTable<T>()
         {
-            return DropTable(typeof (T));
+            return DropTable(typeof(T));
         }
 
         /// <summary>
@@ -363,7 +362,7 @@ namespace SQLite.Net
         [PublicAPI]
         public int CreateTable<T>(CreateFlags createFlags = CreateFlags.None)
         {
-            return CreateTable(typeof (T), createFlags);
+            return CreateTable(typeof(T), createFlags);
         }
 
         /// <summary>
@@ -473,7 +472,7 @@ namespace SQLite.Net
         [PublicAPI]
         public int CreateIndex(string indexName, string tableName, string columnName, bool unique = false)
         {
-            return CreateIndex(indexName, tableName, new[] {columnName}, unique);
+            return CreateIndex(indexName, tableName, new[] { columnName }, unique);
         }
 
         /// <summary>
@@ -513,7 +512,7 @@ namespace SQLite.Net
             MemberExpression mx;
             if (property.Body.NodeType == ExpressionType.Convert)
             {
-                mx = ((UnaryExpression) property.Body).Operand as MemberExpression;
+                mx = ((UnaryExpression)property.Body).Operand as MemberExpression;
             }
             else
             {
@@ -544,18 +543,18 @@ namespace SQLite.Net
             return Query<ColumnInfo>(query);
         }
 
-		[PublicAPI]
-		public void MigrateTable<T>()
-		{
-			MigrateTable(typeof(T));
-		}
+        [PublicAPI]
+        public void MigrateTable<T>()
+        {
+            MigrateTable(typeof(T));
+        }
 
-		[PublicAPI]
-		public void MigrateTable(Type t)
-		{
-			var map = GetMapping(t);
-			MigrateTable(map);
-		}
+        [PublicAPI]
+        public void MigrateTable(Type t)
+        {
+            var map = GetMapping(t);
+            MigrateTable(map);
+        }
 
         private void MigrateTable(TableMapping map)
         {
@@ -667,7 +666,7 @@ namespace SQLite.Net
                 _sw.Stop();
                 _elapsedMilliseconds += _sw.ElapsedMilliseconds;
 
-                TraceListener.WriteLine("Finished in {0} ms ({1:0.0} s total)", _sw.ElapsedMilliseconds, _elapsedMilliseconds/1000.0);
+                TraceListener.WriteLine("Finished in {0} ms ({1:0.0} s total)", _sw.ElapsedMilliseconds, _elapsedMilliseconds / 1000.0);
             }
 
             return r;
@@ -695,7 +694,7 @@ namespace SQLite.Net
                 _sw.Stop();
                 _elapsedMilliseconds += _sw.ElapsedMilliseconds;
 
-                TraceListener.WriteLine("Finished in {0} ms ({1:0.0} s total)", _sw.ElapsedMilliseconds, _elapsedMilliseconds/1000.0);
+                TraceListener.WriteLine("Finished in {0} ms ({1:0.0} s total)", _sw.ElapsedMilliseconds, _elapsedMilliseconds / 1000.0);
             }
 
             return r;
@@ -831,7 +830,7 @@ namespace SQLite.Net
         [PublicAPI]
         public T Get<T>(object pk) where T : class
         {
-            var map = GetMapping(typeof (T));
+            var map = GetMapping(typeof(T));
             return Query<T>(map.GetByPrimaryKeySql, pk).First();
         }
 
@@ -867,7 +866,7 @@ namespace SQLite.Net
         [PublicAPI]
         public T Find<T>(object pk) where T : class
         {
-            var map = GetMapping(typeof (T));
+            var map = GetMapping(typeof(T));
             return Query<T>(map.GetByPrimaryKeySql, pk).FirstOrDefault();
         }
 
@@ -1279,24 +1278,25 @@ namespace SQLite.Net
         }
 
         [PublicAPI]
-        public int InsertOrIgnoreAll (IEnumerable objects)
+        public int InsertOrIgnoreAll(IEnumerable objects)
         {
-            return InsertAll (objects, "OR IGNORE");
+            return InsertAll(objects, "OR IGNORE");
         }
 
         [PublicAPI]
-        public int InsertOrIgnore (object obj)
+        public int InsertOrIgnore(object obj)
         {
-            if (obj == null) {
+            if (obj == null)
+            {
                 return 0;
             }
-            return Insert (obj, "OR IGNORE", obj.GetType ());
+            return Insert(obj, "OR IGNORE", obj.GetType());
         }
 
         [PublicAPI]
-        public int InsertOrIgnore (object obj, Type objType)
+        public int InsertOrIgnore(object obj, Type objType)
         {
-            return Insert (obj, "OR IGNORE", objType);
+            return Insert(obj, "OR IGNORE", objType);
         }
 
         /// <summary>
@@ -1491,13 +1491,9 @@ namespace SQLite.Net
 
             if (map.PK != null && map.PK.IsAutoGuid)
             {
-                var prop = objType.GetRuntimeProperty(map.PK.PropertyName);
-                if (prop != null)
+                if (map.PK.GetValue(obj).Equals(Guid.Empty))
                 {
-                    if (prop.GetValue(obj, null).Equals(Guid.Empty))
-                    {
-                        prop.SetValue(obj, Guid.NewGuid(), null);
-                    }
+                    map.PK.SetValue(obj, Guid.NewGuid());
                 }
             }
 
@@ -1605,17 +1601,17 @@ namespace SQLite.Net
             }
 
             var cols = from p in map.Columns
-                where p != pk
-                select p;
+                       where p != pk
+                       select p;
             var vals = from c in cols
-                select c.GetValue(obj);
+                       select c.GetValue(obj);
             var ps = new List<object>(vals)
             {
                 pk.GetValue(obj)
             };
             var q = string.Format("update \"{0}\" set {1} where {2} = ? ", map.TableName,
                 string.Join(",", (from c in cols
-                    select "\"" + c.Name + "\" = ? ").ToArray()), pk.Name);
+                                  select "\"" + c.Name + "\" = ? ").ToArray()), pk.Name);
             try
             {
                 rowsAffected = Execute(q, ps.ToArray());
@@ -1704,7 +1700,7 @@ namespace SQLite.Net
         [PublicAPI]
         public int Delete<T>(object primaryKey)
         {
-            var map = GetMapping(typeof (T));
+            var map = GetMapping(typeof(T));
             var pk = map.PK;
             if (pk == null)
             {
@@ -1728,7 +1724,7 @@ namespace SQLite.Net
         [PublicAPI]
         public int DeleteAll<T>()
         {
-            return DeleteAll(typeof (T));
+            return DeleteAll(typeof(T));
         }
 
         /// <summary>
@@ -1763,7 +1759,7 @@ namespace SQLite.Net
             IDbHandle destDB;
             byte[] databasePathAsBytes = GetNullTerminatedUtf8(destDBPath);
             Result r = sqliteApi.Open(databasePathAsBytes, out destDB,
-                (int) (SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite), IntPtr.Zero);
+                (int)(SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite), IntPtr.Zero);
 
             if (r != Result.OK)
             {
