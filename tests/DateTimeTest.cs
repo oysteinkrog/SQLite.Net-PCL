@@ -57,6 +57,9 @@ namespace SQLite.Net.Tests
 
             Assert.AreEqual(fromDb.Time1.ToLocalTime(), org.Time1.ToLocalTime());
             Assert.AreEqual(fromDb.Time2.ToLocalTime(), org.Time2.ToLocalTime());
+
+            Assert.AreEqual(fromDb.Time1.Kind, DateTimeKind.Utc);
+            Assert.AreEqual(fromDb.Time2.Kind, DateTimeKind.Utc);
         }
 
         [Test]
