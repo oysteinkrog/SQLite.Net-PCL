@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using JetBrains.Annotations;
 using SQLite.Net.Interop;
@@ -34,19 +35,21 @@ namespace SQLite.Net
 {
     public class TableQuery<T> : BaseTableQuery, IEnumerable<T>
     {
-        private readonly ISQLitePlatform _sqlitePlatform;
-        private bool _deferred;
-        private BaseTableQuery _joinInner;
-        private Expression _joinInnerKeySelector;
-        private BaseTableQuery _joinOuter;
-        private Expression _joinOuterKeySelector;
-        private Expression _joinSelector;
-        private int? _limit;
-        private int? _offset;
-        private List<Ordering> _orderBys;
-        private Expression _where;
+        protected readonly ISQLitePlatform _sqlitePlatform;
+        protected bool _deferred;
+        protected string _select = "*";
+        protected BaseTableQuery _joinInner;
+        protected Expression _joinInnerKeySelector;
+        protected BaseTableQuery _joinOuter;
+        protected Expression _joinOuterKeySelector;
+        protected Expression _joinSelector;
+        protected int? _limit;
+        protected int? _offset;
+        protected List<Ordering> _orderBys;
+        protected bool _orderByRand;
+        protected Expression _where;
 
-        private TableQuery(ISQLitePlatform platformImplementation, SQLiteConnection conn, TableMapping table)
+        protected TableQuery(ISQLitePlatform platformImplementation, SQLiteConnection conn, TableMapping table)
         {
             _sqlitePlatform = platformImplementation;
             Connection = conn;
@@ -61,21 +64,49 @@ namespace SQLite.Net
             Table = Connection.GetMapping(typeof (T));
         }
 
+        /// <summary>
+        /// Copy constructor
+        /// </summary>
+        /// <param name="other">Instance to copy</param>
+        protected TableQuery(TableQuery<T> other)
+            : this(other._sqlitePlatform, other.Connection, other.Table)
+        {
+            _where = other._where;
+            _select = other._select;
+            _deferred = other._deferred;
+            _limit = other._limit;
+            _offset = other._offset;
+            _joinInner = other._joinInner;
+            _joinInnerKeySelector = other._joinInnerKeySelector;
+            _joinOuter = other._joinOuter;
+            _joinOuterKeySelector = other._joinOuterKeySelector;
+            _joinSelector = other._joinSelector;
+            _orderByRand = other._orderByRand;
+            _orderBys = other._orderBys == null
+                ? null
+                : new List<Ordering>(other._orderBys);
+        }
+
         [PublicAPI]
         public SQLiteConnection Connection { get; private set; }
 
         [PublicAPI]
         public TableMapping Table { get; private set; }
+        
+        private IEnumerable<U> GetEnumerable<U>()
+        {
+            if (!_deferred)
+                return GenerateCommand(_select)
+                    .ExecuteQuery<U>();
+
+            return GenerateCommand(_select)
+                .ExecuteDeferredQuery<U>();
+        }
 
         [PublicAPI]
         public IEnumerator<T> GetEnumerator()
         {
-            if (!_deferred)
-            {
-                return GenerateCommand("*").ExecuteQuery<T>().GetEnumerator();
-            }
-
-            return GenerateCommand("*").ExecuteDeferredQuery<T>().GetEnumerator();
+            return GetEnumerable<T>().GetEnumerator();
         }
 
         [PublicAPI]
@@ -85,22 +116,46 @@ namespace SQLite.Net
         }
 
         [PublicAPI]
-        public TableQuery<U> Clone<U>()
+        public IEnumerable<U> MapTo<U>(
+            bool selectFromAvailableProperties = true)
         {
-            return new TableQuery<U>(_sqlitePlatform, Connection, Table)
-            {
-                _where = _where,
-                _deferred = _deferred,
-                _limit = _limit,
-                _offset = _offset,
-                _joinInner = _joinInner,
-                _joinInnerKeySelector = _joinInnerKeySelector,
-                _joinOuter = _joinOuter,
-                _joinOuterKeySelector = _joinOuterKeySelector,
-                _joinSelector = _joinSelector,
-                _orderBys = _orderBys == null ? null : new List<Ordering>(_orderBys)
-            };
+            if (selectFromAvailableProperties)
+                SelectColumns(_sqlitePlatform.ReflectionService
+                    .GetPublicInstanceProperties(typeof(U))
+                    .Select(prop => prop.Name)
+                    .ToArray());
+            
+            return GetEnumerable<U>();
         }
+        
+        [PublicAPI]
+        public virtual object Clone()
+        {
+            return new TableQuery<T>(this);
+        }
+
+        // Alex 13/07/16
+        // Should this get removed ?
+
+        //[PublicAPI]
+        //public TableQuery<U> Clone<U>()
+        //{
+        //    return new TableQuery<U>(_sqlitePlatform, Connection, Table)
+        //    {
+        //        _where = _where,
+        //        _select = _select,
+        //        _deferred = _deferred,
+        //        _limit = _limit,
+        //        _offset = _offset,
+        //        _joinInner = _joinInner,
+        //        _joinInnerKeySelector = _joinInnerKeySelector,
+        //        _joinOuter = _joinOuter,
+        //        _joinOuterKeySelector = _joinOuterKeySelector,
+        //        _joinSelector = _joinSelector,
+        //        _orderByRand = _orderByRand,
+        //        _orderBys = _orderBys == null ? null : new List<Ordering>(_orderBys)
+        //    };
+        //}
 
         [PublicAPI]
         public TableQuery<T> Where([NotNull] Expression<Func<T, bool>> predExpr)
@@ -115,7 +170,7 @@ namespace SQLite.Net
             }
             var lambda = (LambdaExpression) predExpr;
             var pred = lambda.Body;
-            var q = Clone<T>();
+            var q = (TableQuery<T>)Clone();
             q.AddWhere(pred);
             return q;
         }
@@ -123,7 +178,7 @@ namespace SQLite.Net
         [PublicAPI]
         public TableQuery<T> Take(int n)
         {
-            var q = Clone<T>();
+            var q = (TableQuery<T>)Clone();
 
             // If there is already a limit then the limit will be the minimum
             // of the current limit and n.
@@ -171,7 +226,7 @@ namespace SQLite.Net
         [PublicAPI]
         public TableQuery<T> Skip(int n)
         {
-            var q = Clone<T>();
+            var q = (TableQuery<T>)Clone();
 
             q._offset = n + (q._offset ?? 0);
             return q;
@@ -186,7 +241,7 @@ namespace SQLite.Net
         [PublicAPI]
         public TableQuery<T> Deferred()
         {
-            var q = Clone<T>();
+            var q = (TableQuery<T>)Clone();
             q._deferred = true;
             return q;
         }
@@ -215,6 +270,18 @@ namespace SQLite.Net
             return AddOrderBy(orderExpr, false);
         }
 
+        public TableQuery<T> OrderByRand()
+        {
+            if (_orderBys != null)
+                throw new InvalidOperationException(
+                    "Cannot concomitantly order by Random AND column(s)");
+
+            var q = (TableQuery<T>)Clone();
+            q._orderByRand = true;
+
+            return q;
+        }
+
         private TableQuery<T> AddOrderBy<TValue>([NotNull] Expression<Func<T, TValue>> orderExpr, bool asc)
         {
             if (orderExpr == null)
@@ -225,6 +292,10 @@ namespace SQLite.Net
             {
                 throw new NotSupportedException("Must be a predicate");
             }
+            if (_orderByRand)
+                throw new InvalidOperationException(
+                    "Cannot concomitantly order by Random AND column(s)");
+
             var lambda = (LambdaExpression) orderExpr;
 
             MemberExpression mem;
@@ -243,7 +314,7 @@ namespace SQLite.Net
             {
                 throw new NotSupportedException("Order By does not support: " + orderExpr);
             }
-            var q = Clone<T>();
+            var q = (TableQuery<T>)Clone();
             if (q._orderBys == null)
             {
                 q._orderBys = new List<Ordering>();
@@ -295,6 +366,40 @@ namespace SQLite.Net
             return q;
         }
 
+        public TableQuery<T> SelectColumns(params string[] propertiesName)
+        {
+            int i = 0;
+            string selectSqlStatement = "";
+
+            for (; i < propertiesName.Length - 1; i++)
+                selectSqlStatement += "`{" + i + "}`, ";
+
+            return SelectColumns(selectSqlStatement + "`{" + i + "}`", propertiesName);
+        }
+
+        public TableQuery<T> SelectColumns(string selectSqlStatement,
+            params string[] propertiesName)
+        {
+            var q = (TableQuery<T>)Clone();
+
+            for (int i = 0; i < propertiesName.Length; i++)
+            {
+                TableMapping.Column column = Table.FindColumnWithPropertyName(
+                    propertiesName[i] as string);
+
+                if (column == null)
+                    throw new ArgumentException(
+                        "No such column " + propertiesName[i],
+                        nameof(propertiesName));
+
+                propertiesName[i] = column.Name;
+            }
+            
+            q._select = String.Format(selectSqlStatement, propertiesName);
+
+            return q;
+        }
+
         private SQLiteCommand GenerateCommand([NotNull] string selectionList)
         {
             if (selectionList == null)
@@ -305,19 +410,25 @@ namespace SQLite.Net
             {
                 throw new NotSupportedException("Joins are not supported.");
             }
+
             var cmdText = "select " + selectionList + " from \"" + Table.TableName + "\"";
+
             var args = new List<object>();
             if (_where != null)
             {
                 var w = CompileExpr(_where, args);
                 cmdText += " where " + w.CommandText;
             }
+
             if ((_orderBys != null) && (_orderBys.Count > 0))
             {
                 var t = string.Join(", ",
                     _orderBys.Select(o => "\"" + o.ColumnName + "\"" + (o.Ascending ? "" : " desc")).ToArray());
                 cmdText += " order by " + t;
             }
+            else if (_orderByRand)
+                cmdText += " order by RANDOM() ";
+
             if (_limit.HasValue)
             {
                 cmdText += " limit " + _limit.Value;
@@ -385,6 +496,15 @@ namespace SQLite.Net
                 var call = (MethodCallExpression) expr;
                 var args = new CompileResult[call.Arguments.Count];
                 var obj = call.Object != null ? CompileExpr(call.Object, queryArgs) : null;
+
+                if (call.Method.Name == "Select" && args.Length == 2)
+                {
+                    object val = Expression.Lambda(call)
+                              .Compile()
+                              .DynamicInvoke();
+
+                    return CompileEnumerable(val, queryArgs);
+                }
 
                 for (var i = 0; i < args.Length; i++)
                 {
@@ -506,33 +626,38 @@ namespace SQLite.Net
                 //
                 // Work special magic for enumerables
                 //
-                if (val != null && val is IEnumerable && !(val is string) && !(val is IEnumerable<byte>))
+                return CompileEnumerable(val, queryArgs);
+            }
+            throw new NotSupportedException("Cannot compile: " + expr.NodeType);
+        }
+
+        private CompileResult CompileEnumerable(object val, List<object> queryArgs)
+        {
+            if (val != null && val is IEnumerable && !(val is string) && !(val is IEnumerable<byte>))
+            {
+                var sb = new StringBuilder();
+                sb.Append("(");
+                var head = "";
+                foreach (var a in (IEnumerable)val)
                 {
-                    var sb = new StringBuilder();
-                    sb.Append("(");
-                    var head = "";
-                    foreach (var a in (IEnumerable) val)
-                    {
-                        queryArgs.Add(a);
-                        sb.Append(head);
-                        sb.Append("?");
-                        head = ",";
-                    }
-                    sb.Append(")");
-                    return new CompileResult
-                    {
-                        CommandText = sb.ToString(),
-                        Value = val
-                    };
+                    queryArgs.Add(a);
+                    sb.Append(head);
+                    sb.Append("?");
+                    head = ",";
                 }
-                queryArgs.Add(val);
+                sb.Append(")");
                 return new CompileResult
                 {
-                    CommandText = "?",
+                    CommandText = sb.ToString(),
                     Value = val
                 };
             }
-            throw new NotSupportedException("Cannot compile: " + expr.NodeType);
+            queryArgs.Add(val);
+            return new CompileResult
+            {
+                CommandText = "?",
+                Value = val
+            };
         }
 
         [CanBeNull]

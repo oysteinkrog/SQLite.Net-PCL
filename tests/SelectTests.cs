@@ -31,6 +31,11 @@ namespace SQLite.Net.Tests
             }
         }
 
+        class TestMappedObj
+        {
+            public int Id { get; set; }
+        }
+
         public class TestDb : SQLiteConnection
         {
             public TestDb(String path)
@@ -54,8 +59,27 @@ namespace SQLite.Net.Tests
                 {
                     //Allow Not implemented exceptions as the selection may be too complex.
                 }
+
+                Assert.That(
+                    db.Table<TestObj>()
+                      .SelectColumns("`{0}` * 2 as `Order`", nameof(TestObj.Order))
+                      .Select(obj => obj.Order).First(),
+                    Is.EqualTo(10));
             }
-           
+        }
+
+        [Test]
+        public void SelectMapping()
+        {
+            using (var db = new TestDb(TestPath.CreateTemporaryDatabase()))
+            {
+                db.Insert(new TestObj() { Order = 5 });
+                
+                Assert.That(
+                    db.Table<TestObj>().MapTo<TestMappedObj>().First().Id,
+                    Is.GreaterThan(0));
+            }
+
         }
     }
 }
