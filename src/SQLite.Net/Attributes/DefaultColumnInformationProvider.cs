@@ -82,7 +82,11 @@ namespace SQLite.Net
 			return attrs.Any();
 		}
 
-		#endregion
-	}
+        public bool IsCalculatedField(PropertyInfo p) {
+            return p.IsDefined(typeof(CalculatedColumnAttribute), true);
+        }
+
+        #endregion
+    }
 }
 

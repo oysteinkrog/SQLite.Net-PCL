@@ -164,6 +164,10 @@ namespace SQLite.Net
 			return ColumnInformationProvider.IsAutoInc (p);
         }
 
+        internal static bool IsCalculatedField(PropertyInfo p) {
+            return ColumnInformationProvider.IsCalculatedField(p);
+        }
+
         internal static IEnumerable<IndexedAttribute> GetIndices(MemberInfo p)
         {
 			return ColumnInformationProvider.GetIndices (p);

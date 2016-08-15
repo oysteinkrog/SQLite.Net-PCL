@@ -14,7 +14,8 @@ namespace SQLite.Net
 		object GetDefaultValue(PropertyInfo p);
 		bool IsMarkedNotNull(MemberInfo p);
 		bool IsIgnored(PropertyInfo p);
-		string GetColumnName(PropertyInfo p);
+        bool IsCalculatedField(PropertyInfo p);
+        string GetColumnName(PropertyInfo p);
 	}
 }
 

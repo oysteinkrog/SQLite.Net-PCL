@@ -33,14 +33,12 @@ using JetBrains.Annotations;
 using SQLite.Net.Attributes;
 using SQLite.Net.Interop;
 
-namespace SQLite.Net
-{
+namespace SQLite.Net {
     /// <summary>
     ///     Represents an open connection to a SQLite database.
     /// </summary>
     [PublicAPI]
-    public class SQLiteConnection : IDisposable
-    {
+    public class SQLiteConnection : IDisposable {
         internal static readonly IDbHandle NullHandle = default(IDbHandle);
 
         /// <summary>
@@ -52,7 +50,7 @@ namespace SQLite.Net
 #pragma warning restore 649
         private readonly Random _rand = new Random();
         private readonly IDictionary<string, TableMapping> _tableMappings;
-		private readonly object _tableMappingsLocks;
+        private readonly object _tableMappingsLocks;
         private TimeSpan _busyTimeout;
         private long _elapsedMilliseconds;
         private IDictionary<TableMapping, ActiveInsertCommand> _insertCommandCache;
@@ -60,10 +58,8 @@ namespace SQLite.Net
         private IStopwatch _sw;
         private int _transactionDepth;
 
-        static SQLiteConnection()
-        {
-            if (_preserveDuringLinkMagic)
-            {
+        static SQLiteConnection() {
+            if (_preserveDuringLinkMagic) {
                 // ReSharper disable once UseObjectOrCollectionInitializer
                 var ti = new ColumnInfo();
                 ti.Name = "magic";
@@ -104,8 +100,7 @@ namespace SQLite.Net
             bool storeDateTimeAsTicks = true, [CanBeNull] IBlobSerializer serializer = null, [CanBeNull] IDictionary<string, TableMapping> tableMappings = null,
             [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, [CanBeNull] IContractResolver resolver = null)
             : this(sqlitePlatform, databasePath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create, storeDateTimeAsTicks,
-                serializer, tableMappings, extraTypeMappings, resolver)
-        {
+                serializer, tableMappings, extraTypeMappings, resolver) {
         }
 
         /// <summary>
@@ -141,10 +136,8 @@ namespace SQLite.Net
         [PublicAPI]
         public SQLiteConnection([JetBrains.Annotations.NotNull] ISQLitePlatform sqlitePlatform, string databasePath, SQLiteOpenFlags openFlags,
             bool storeDateTimeAsTicks = true, [CanBeNull] IBlobSerializer serializer = null, [CanBeNull] IDictionary<string, TableMapping> tableMappings = null,
-            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, IContractResolver resolver = null)
-        {
-            if (sqlitePlatform == null)
-            {
+            [CanBeNull] IDictionary<Type, string> extraTypeMappings = null, IContractResolver resolver = null) {
+            if (sqlitePlatform == null) {
                 throw new ArgumentNullException("sqlitePlatform");
             }
             ExtraTypeMappings = extraTypeMappings ?? new Dictionary<Type, string>();
@@ -153,10 +146,9 @@ namespace SQLite.Net
             Resolver = resolver ?? ContractResolver.Current;
 
             _tableMappings = tableMappings ?? new Dictionary<string, TableMapping>();
-			_tableMappingsLocks = new object();
+            _tableMappingsLocks = new object();
 
-            if (string.IsNullOrEmpty(databasePath))
-            {
+            if (string.IsNullOrEmpty(databasePath)) {
                 throw new ArgumentException("Must be specified", "databasePath");
             }
 
@@ -164,16 +156,14 @@ namespace SQLite.Net
 
             IDbHandle handle;
             var databasePathAsBytes = GetNullTerminatedUtf8(DatabasePath);
-            var r = Platform.SQLiteApi.Open(databasePathAsBytes, out handle, (int) openFlags, IntPtr.Zero);
+            var r = Platform.SQLiteApi.Open(databasePathAsBytes, out handle, (int)openFlags, IntPtr.Zero);
 
             Handle = handle;
-            if (r != Result.OK)
-            {
+            if (r != Result.OK) {
                 throw SQLiteException.New(r, string.Format("Could not open database file: {0} ({1})", DatabasePath, r));
             }
 
-            if (handle == null)
-            {
+            if (handle == null) {
                 throw new NullReferenceException("Database handle is null");
             }
 
@@ -186,17 +176,15 @@ namespace SQLite.Net
             BusyTimeout = TimeSpan.FromSeconds(0.1);
         }
 
-		private IColumnInformationProvider _columnInformationProvider;
-		[CanBeNull, PublicAPI]
-		public IColumnInformationProvider ColumnInformationProvider 
-		{
-			get { return _columnInformationProvider; }
-			set
-			{
-				_columnInformationProvider = value;
-				Orm.ColumnInformationProvider = _columnInformationProvider ?? new DefaultColumnInformationProvider ();
-			}
-		}
+        private IColumnInformationProvider _columnInformationProvider;
+        [CanBeNull, PublicAPI]
+        public IColumnInformationProvider ColumnInformationProvider {
+            get { return _columnInformationProvider; }
+            set {
+                _columnInformationProvider = value;
+                Orm.ColumnInformationProvider = _columnInformationProvider ?? new DefaultColumnInformationProvider();
+            }
+        }
 
         [CanBeNull, PublicAPI]
         public IBlobSerializer Serializer { get; private set; }
@@ -228,15 +216,12 @@ namespace SQLite.Net
         ///     The handler will sleep multiple times until a total time of <see cref="BusyTimeout" /> has accumulated.
         /// </summary>
         [PublicAPI]
-        public TimeSpan BusyTimeout
-        {
+        public TimeSpan BusyTimeout {
             get { return _busyTimeout; }
-            set
-            {
+            set {
                 _busyTimeout = value;
-                if (Handle != NullHandle)
-                {
-                    Platform.SQLiteApi.BusyTimeout(Handle, (int) _busyTimeout.TotalMilliseconds);
+                if (Handle != NullHandle) {
+                    Platform.SQLiteApi.BusyTimeout(Handle, (int)_busyTimeout.TotalMilliseconds);
                 }
             }
         }
@@ -247,23 +232,19 @@ namespace SQLite.Net
         /// </summary>
         [PublicAPI]
         [JetBrains.Annotations.NotNull]
-        public IEnumerable<TableMapping> TableMappings
-        {
-            get
-			{
-				lock (_tableMappingsLocks)
-				{
-					return _tableMappings.Values.ToList();
-				}
-			}
+        public IEnumerable<TableMapping> TableMappings {
+            get {
+                lock (_tableMappingsLocks) {
+                    return _tableMappings.Values.ToList();
+                }
+            }
         }
 
         /// <summary>
         ///     Whether <see cref="BeginTransaction" /> has been called and the database is waiting for a <see cref="Commit" />.
         /// </summary>
         [PublicAPI]
-        public bool IsInTransaction
-        {
+        public bool IsInTransaction {
             get { return _transactionDepth > 0; }
         }
 
@@ -271,26 +252,22 @@ namespace SQLite.Net
         public ISQLitePlatform Platform { get; private set; }
 
         [PublicAPI]
-        public void Dispose()
-        {
+        public void Dispose() {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
         [PublicAPI]
-        public void EnableLoadExtension(int onoff)
-        {
+        public void EnableLoadExtension(int onoff) {
             var r = Platform.SQLiteApi.EnableLoadExtension(Handle, onoff);
-            if (r != Result.OK)
-            {
+            if (r != Result.OK) {
                 var msg = Platform.SQLiteApi.Errmsg16(Handle);
                 throw SQLiteException.New(r, msg);
             }
         }
 
         [JetBrains.Annotations.NotNull]
-        private static byte[] GetNullTerminatedUtf8(string s)
-        {
+        private static byte[] GetNullTerminatedUtf8(string s) {
             var utf8Length = Encoding.UTF8.GetByteCount(s);
             var bytes = new byte[utf8Length + 1];
             Encoding.UTF8.GetBytes(s, 0, s.Length, bytes, 0);
@@ -311,21 +288,18 @@ namespace SQLite.Net
         ///     methods to set and get properties of objects.
         /// </returns>
         [PublicAPI]
-        public TableMapping GetMapping(Type type, CreateFlags createFlags = CreateFlags.None)
-        {
-			lock (_tableMappingsLocks)
-			{
-				TableMapping map;
-				return _tableMappings.TryGetValue(type.FullName, out map) ? map : CreateAndSetMapping(type, createFlags, _tableMappings);
-			}
+        public TableMapping GetMapping(Type type, CreateFlags createFlags = CreateFlags.None) {
+            lock (_tableMappingsLocks) {
+                TableMapping map;
+                return _tableMappings.TryGetValue(type.FullName, out map) ? map : CreateAndSetMapping(type, createFlags, _tableMappings);
+            }
         }
 
-        private TableMapping CreateAndSetMapping(Type type, CreateFlags createFlags, IDictionary<string, TableMapping> mapTable)
-        {
+        private TableMapping CreateAndSetMapping(Type type, CreateFlags createFlags, IDictionary<string, TableMapping> mapTable) {
             var props = Platform.ReflectionService.GetPublicInstanceProperties(type);
-			var map = new TableMapping(type, props, createFlags, _columnInformationProvider);
+            var map = new TableMapping(type, props, createFlags, _columnInformationProvider);
             mapTable[type.FullName] = map;
-        	return map;
+            return map;
         }
 
         /// <summary>
@@ -336,26 +310,23 @@ namespace SQLite.Net
         ///     methods to set and get properties of objects.
         /// </returns>
         [PublicAPI]
-        public TableMapping GetMapping<T>()
-        {
-            return GetMapping(typeof (T));
+        public TableMapping GetMapping<T>() {
+            return GetMapping(typeof(T));
         }
 
         /// <summary>
         ///     Executes a "drop table" on the database.  This is non-recoverable.
         /// </summary>
         [PublicAPI]
-        public int DropTable<T>()
-        {
-            return DropTable(typeof (T));
+        public int DropTable<T>() {
+            return DropTable(typeof(T));
         }
 
         /// <summary>
         ///     Executes a "drop table" on the database.  This is non-recoverable.
         /// </summary>
         [PublicAPI]
-        public int DropTable(Type t)
-        {
+        public int DropTable(Type t) {
             var map = GetMapping(t);
 
             var query = string.Format("drop table if exists \"{0}\"", map.TableName);
@@ -373,9 +344,8 @@ namespace SQLite.Net
         ///     The number of entries added to the database schema.
         /// </returns>
         [PublicAPI]
-        public int CreateTable<T>(CreateFlags createFlags = CreateFlags.None)
-        {
-            return CreateTable(typeof (T), createFlags);
+        public int CreateTable<T>(CreateFlags createFlags = CreateFlags.None) {
+            return CreateTable(typeof(T), createFlags);
         }
 
         /// <summary>
@@ -390,44 +360,39 @@ namespace SQLite.Net
         ///     The number of entries added to the database schema.
         /// </returns>
         [PublicAPI]
-        public int CreateTable(Type ty, CreateFlags createFlags = CreateFlags.None)
-        {
+        public int CreateTable(Type ty, CreateFlags createFlags = CreateFlags.None) {
             var map = GetMapping(ty, createFlags);
 
             var query = "create table if not exists \"" + map.TableName + "\"(\n";
 
             var mapColumns = map.Columns;
-
-            if (!mapColumns.Any())
-            {
+            mapColumns = mapColumns.Where(a => !a.IsCalculatedField).OrderByDescending(a => a.IsPK).ToArray();
+            if (!mapColumns.Any()) {
                 throw new Exception("Table has no (public) columns");
             }
 
             var decls = mapColumns.Select(p => Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings));
             var decl = string.Join(",\n", decls.ToArray());
             query += decl;
+
             query += ")";
 
             var count = Execute(query);
 
-            if (count == 0)
-            {
+            if (count == 0) {
                 //Possible bug: This always seems to return 0?
                 // Table already exists, migrate it
                 MigrateTable(map);
             }
 
             var indexes = new Dictionary<string, IndexInfo>();
-            foreach (var c in mapColumns)
-            {
-                foreach (var i in c.Indices)
-                {
+            foreach (var c in mapColumns) {
+                if (c.IsCalculatedField) continue;
+                foreach (var i in c.Indices) {
                     var iname = i.Name ?? map.TableName + "_" + c.Name;
                     IndexInfo iinfo;
-                    if (!indexes.TryGetValue(iname, out iinfo))
-                    {
-                        iinfo = new IndexInfo
-                        {
+                    if (!indexes.TryGetValue(iname, out iinfo)) {
+                        iinfo = new IndexInfo {
                             IndexName = iname,
                             TableName = map.TableName,
                             Unique = i.Unique,
@@ -436,22 +401,19 @@ namespace SQLite.Net
                         indexes.Add(iname, iinfo);
                     }
 
-                    if (i.Unique != iinfo.Unique)
-                    {
+                    if (i.Unique != iinfo.Unique) {
                         throw new Exception(
                             "All the columns in an index must have the same value for their Unique property");
                     }
 
-                    iinfo.Columns.Add(new IndexedColumn
-                    {
+                    iinfo.Columns.Add(new IndexedColumn {
                         Order = i.Order,
                         ColumnName = c.Name
                     });
                 }
             }
 
-            foreach (var indexName in indexes.Keys)
-            {
+            foreach (var indexName in indexes.Keys) {
                 var index = indexes[indexName];
                 var columns = index.Columns.OrderBy(i => i.Order).Select(i => i.ColumnName).ToArray();
                 count += CreateIndex(indexName, index.TableName, columns, index.Unique);
@@ -468,8 +430,7 @@ namespace SQLite.Net
         /// <param name="columnNames">An array of column names to index</param>
         /// <param name="unique">Whether the index should be unique</param>
         [PublicAPI]
-        public int CreateIndex(string indexName, string tableName, string[] columnNames, bool unique = false)
-        {
+        public int CreateIndex(string indexName, string tableName, string[] columnNames, bool unique = false) {
             const string sqlFormat = "create {2} index if not exists \"{3}\" on \"{0}\"(\"{1}\")";
             var sql = string.Format(sqlFormat, tableName, string.Join("\", \"", columnNames), unique ? "unique" : "", indexName);
             return Execute(sql);
@@ -483,9 +444,8 @@ namespace SQLite.Net
         /// <param name="columnName">Name of the column to index</param>
         /// <param name="unique">Whether the index should be unique</param>
         [PublicAPI]
-        public int CreateIndex(string indexName, string tableName, string columnName, bool unique = false)
-        {
-            return CreateIndex(indexName, tableName, new[] {columnName}, unique);
+        public int CreateIndex(string indexName, string tableName, string columnName, bool unique = false) {
+            return CreateIndex(indexName, tableName, new[] { columnName }, unique);
         }
 
         /// <summary>
@@ -495,8 +455,7 @@ namespace SQLite.Net
         /// <param name="columnName">Name of the column to index</param>
         /// <param name="unique">Whether the index should be unique</param>
         [PublicAPI]
-        public int CreateIndex(string tableName, string columnName, bool unique = false)
-        {
+        public int CreateIndex(string tableName, string columnName, bool unique = false) {
             return CreateIndex(tableName + "_" + columnName, tableName, columnName, unique);
         }
 
@@ -507,8 +466,7 @@ namespace SQLite.Net
         /// <param name="columnNames">An array of column names to index</param>
         /// <param name="unique">Whether the index should be unique</param>
         [PublicAPI]
-        public int CreateIndex(string tableName, string[] columnNames, bool unique = false)
-        {
+        public int CreateIndex(string tableName, string[] columnNames, bool unique = false) {
             return CreateIndex(tableName + "_" + string.Join("_", columnNames), tableName, columnNames, unique);
         }
 
@@ -520,24 +478,19 @@ namespace SQLite.Net
         /// <param name="property">Property to index</param>
         /// <param name="unique">Whether the index should be unique</param>
         [PublicAPI]
-        public void CreateIndex<T>(Expression<Func<T, object>> property, bool unique = false)
-        {
+        public void CreateIndex<T>(Expression<Func<T, object>> property, bool unique = false) {
             MemberExpression mx;
-            if (property.Body.NodeType == ExpressionType.Convert)
-            {
-                mx = ((UnaryExpression) property.Body).Operand as MemberExpression;
+            if (property.Body.NodeType == ExpressionType.Convert) {
+                mx = ((UnaryExpression)property.Body).Operand as MemberExpression;
             }
-            else
-            {
+            else {
                 mx = (property.Body as MemberExpression);
             }
-            if (mx == null)
-            {
+            if (mx == null) {
                 throw new ArgumentException("Expression is not supported", "property");
             }
             var propertyInfo = mx.Member as PropertyInfo;
-            if (propertyInfo == null)
-            {
+            if (propertyInfo == null) {
                 throw new ArgumentException("The lambda expression 'property' should point to a valid Property");
             }
 
@@ -550,50 +503,42 @@ namespace SQLite.Net
         }
 
         [PublicAPI]
-        public List<ColumnInfo> GetTableInfo(string tableName)
-        {
+        public List<ColumnInfo> GetTableInfo(string tableName) {
             var query = "pragma table_info(\"" + tableName + "\")";
             return Query<ColumnInfo>(query);
         }
 
-		[PublicAPI]
-		public void MigrateTable<T>()
-		{
-			MigrateTable(typeof(T));
-		}
+        [PublicAPI]
+        public void MigrateTable<T>() {
+            MigrateTable(typeof(T));
+        }
 
-		[PublicAPI]
-		public void MigrateTable(Type t)
-		{
-			var map = GetMapping(t);
-			MigrateTable(map);
-		}
+        [PublicAPI]
+        public void MigrateTable(Type t) {
+            var map = GetMapping(t);
+            MigrateTable(map);
+        }
 
-        private void MigrateTable(TableMapping map)
-        {
+        private void MigrateTable(TableMapping map) {
             var existingCols = GetTableInfo(map.TableName);
 
             var toBeAdded = new List<TableMapping.Column>();
 
-            foreach (var p in map.Columns)
-            {
+            foreach (var p in map.Columns) {
+                if (p.IsCalculatedField) continue;
                 var found = false;
-                foreach (var c in existingCols)
-                {
+                foreach (var c in existingCols) {
                     found = (string.Compare(p.Name, c.Name, StringComparison.OrdinalIgnoreCase) == 0);
-                    if (found)
-                    {
+                    if (found) {
                         break;
                     }
                 }
-                if (!found)
-                {
+                if (!found) {
                     toBeAdded.Add(p);
                 }
             }
 
-            foreach (var p in toBeAdded)
-            {
+            foreach (var p in toBeAdded) {
                 var addCol = "alter table \"" + map.TableName + "\" add column " +
                              Orm.SqlDecl(p, StoreDateTimeAsTicks, Serializer, ExtraTypeMappings);
                 Execute(addCol);
@@ -605,8 +550,7 @@ namespace SQLite.Net
         /// </summary>
         /// <seealso cref="SQLiteCommand.OnInstanceCreated" />
         [PublicAPI]
-        protected virtual SQLiteCommand NewCommand()
-        {
+        protected virtual SQLiteCommand NewCommand() {
             return new SQLiteCommand(Platform, this);
         }
 
@@ -624,17 +568,14 @@ namespace SQLite.Net
         ///     A <see cref="SQLiteCommand" />
         /// </returns>
         [PublicAPI]
-        public SQLiteCommand CreateCommand(string cmdText, params object[] args)
-        {
-            if (!_open)
-            {
+        public SQLiteCommand CreateCommand(string cmdText, params object[] args) {
+            if (!_open) {
                 throw SQLiteException.New(Result.Error, "Cannot create commands from unopened database");
             }
 
             var cmd = NewCommand();
             cmd.CommandText = cmdText;
-            foreach (var o in args)
-            {
+            foreach (var o in args) {
                 cmd.Bind(o);
             }
             return cmd;
@@ -658,14 +599,11 @@ namespace SQLite.Net
         ///     The number of rows modified in the database as a result of this execution.
         /// </returns>
         [PublicAPI]
-        public int Execute(string query, params object[] args)
-        {
+        public int Execute(string query, params object[] args) {
             var cmd = CreateCommand(query, args);
 
-            if (TimeExecution)
-            {
-                if (_sw == null)
-                {
+            if (TimeExecution) {
+                if (_sw == null) {
                     _sw = Platform.StopwatchFactory.Create();
                 }
                 _sw.Reset();
@@ -674,26 +612,22 @@ namespace SQLite.Net
 
             var r = cmd.ExecuteNonQuery();
 
-            if (TimeExecution)
-            {
+            if (TimeExecution) {
                 _sw.Stop();
                 _elapsedMilliseconds += _sw.ElapsedMilliseconds;
 
-                TraceListener.WriteLine("Finished in {0} ms ({1:0.0} s total)", _sw.ElapsedMilliseconds, _elapsedMilliseconds/1000.0);
+                TraceListener.WriteLine("Finished in {0} ms ({1:0.0} s total)", _sw.ElapsedMilliseconds, _elapsedMilliseconds / 1000.0);
             }
 
             return r;
         }
 
         [PublicAPI]
-        public T ExecuteScalar<T>(string query, params object[] args)
-        {
+        public T ExecuteScalar<T>(string query, params object[] args) {
             var cmd = CreateCommand(query, args);
 
-            if (TimeExecution)
-            {
-                if (_sw == null)
-                {
+            if (TimeExecution) {
+                if (_sw == null) {
                     _sw = Platform.StopwatchFactory.Create();
                 }
                 _sw.Reset();
@@ -702,12 +636,11 @@ namespace SQLite.Net
 
             var r = cmd.ExecuteScalar<T>();
 
-            if (TimeExecution)
-            {
+            if (TimeExecution) {
                 _sw.Stop();
                 _elapsedMilliseconds += _sw.ElapsedMilliseconds;
 
-                TraceListener.WriteLine("Finished in {0} ms ({1:0.0} s total)", _sw.ElapsedMilliseconds, _elapsedMilliseconds/1000.0);
+                TraceListener.WriteLine("Finished in {0} ms ({1:0.0} s total)", _sw.ElapsedMilliseconds, _elapsedMilliseconds / 1000.0);
             }
 
             return r;
@@ -729,8 +662,7 @@ namespace SQLite.Net
         ///     An enumerable with one result for each row returned by the query.
         /// </returns>
         [PublicAPI]
-        public List<T> Query<T>(string query, params object[] args) where T : class
-        {
+        public List<T> Query<T>(string query, params object[] args) where T : class {
             var cmd = CreateCommand(query, args);
             return cmd.ExecuteQuery<T>();
         }
@@ -753,8 +685,7 @@ namespace SQLite.Net
         ///     connection must remain open for the lifetime of the enumerator.
         /// </returns>
         [PublicAPI]
-        public IEnumerable<T> DeferredQuery<T>(string query, params object[] args) where T : class
-        {
+        public IEnumerable<T> DeferredQuery<T>(string query, params object[] args) where T : class {
             var cmd = CreateCommand(query, args);
             return cmd.ExecuteDeferredQuery<T>();
         }
@@ -780,8 +711,7 @@ namespace SQLite.Net
         ///     An enumerable with one result for each row returned by the query.
         /// </returns>
         [PublicAPI]
-        public List<object> Query(TableMapping map, string query, params object[] args)
-        {
+        public List<object> Query(TableMapping map, string query, params object[] args) {
             var cmd = CreateCommand(query, args);
             return cmd.ExecuteQuery<object>(map);
         }
@@ -809,8 +739,7 @@ namespace SQLite.Net
         ///     connection must remain open for the lifetime of the enumerator.
         /// </returns>
         [PublicAPI]
-        public IEnumerable<object> DeferredQuery(TableMapping map, string query, params object[] args)
-        {
+        public IEnumerable<object> DeferredQuery(TableMapping map, string query, params object[] args) {
             var cmd = CreateCommand(query, args);
             return cmd.ExecuteDeferredQuery<object>(map);
         }
@@ -823,8 +752,7 @@ namespace SQLite.Net
         ///     queries into native SQL.
         /// </returns>
         [PublicAPI]
-        public TableQuery<T> Table<T>() where T : class
-        {
+        public TableQuery<T> Table<T>() where T : class {
             return new TableQuery<T>(Platform, this);
         }
 
@@ -841,9 +769,8 @@ namespace SQLite.Net
         ///     if the object is not found.
         /// </returns>
         [PublicAPI]
-        public T Get<T>(object pk) where T : class
-        {
-            var map = GetMapping(typeof (T));
+        public T Get<T>(object pk) where T : class {
+            var map = GetMapping(typeof(T));
             return Query<T>(map.GetByPrimaryKeySql, pk).First();
         }
 
@@ -859,8 +786,7 @@ namespace SQLite.Net
         ///     if the object is not found.
         /// </returns>
         [PublicAPI]
-        public T Get<T>(Expression<Func<T, bool>> predicate) where T : class
-        {
+        public T Get<T>(Expression<Func<T, bool>> predicate) where T : class {
             return Table<T>().Where(predicate).First();
         }
 
@@ -877,9 +803,8 @@ namespace SQLite.Net
         ///     if the object is not found.
         /// </returns>
         [PublicAPI]
-        public T Find<T>(object pk) where T : class
-        {
-            var map = GetMapping(typeof (T));
+        public T Find<T>(object pk) where T : class {
+            var map = GetMapping(typeof(T));
             return Query<T>(map.GetByPrimaryKeySql, pk).FirstOrDefault();
         }
 
@@ -898,8 +823,7 @@ namespace SQLite.Net
         ///     if the object is not found.
         /// </returns>
         [PublicAPI]
-        public T FindWithQuery<T>(string query, params object[] args) where T : class
-        {
+        public T FindWithQuery<T>(string query, params object[] args) where T : class {
             return Query<T>(query, args).FirstOrDefault();
         }
 
@@ -919,8 +843,7 @@ namespace SQLite.Net
         ///     if the object is not found.
         /// </returns>
         [PublicAPI]
-        public object Find(object pk, TableMapping map)
-        {
+        public object Find(object pk, TableMapping map) {
             return Query(map, map.GetByPrimaryKeySql, pk).FirstOrDefault();
         }
 
@@ -936,8 +859,7 @@ namespace SQLite.Net
         ///     if the object is not found.
         /// </returns>
         [PublicAPI]
-        public T Find<T>(Expression<Func<T, bool>> predicate) where T : class
-        {
+        public T Find<T>(Expression<Func<T, bool>> predicate) where T : class {
             return Table<T>().Where(predicate).FirstOrDefault();
         }
 
@@ -946,30 +868,24 @@ namespace SQLite.Net
         /// </summary>
         /// <example cref="System.InvalidOperationException">Throws if a transaction has already begun.</example>
         [PublicAPI]
-        public void BeginTransaction()
-        {
+        public void BeginTransaction() {
             // The BEGIN command only works if the transaction stack is empty, 
             //    or in other words if there are no pending transactions. 
             // If the transaction stack is not empty when the BEGIN command is invoked, 
             //    then the command fails with an error.
             // Rather than crash with an error, we will just ignore calls to BeginTransaction
             //    that would result in an error.
-            if (Interlocked.CompareExchange(ref _transactionDepth, 1, 0) == 0)
-            {
-                try
-                {
+            if (Interlocked.CompareExchange(ref _transactionDepth, 1, 0) == 0) {
+                try {
                     Execute("begin transaction");
                 }
-                catch (Exception ex)
-                {
+                catch (Exception ex) {
                     var sqlExp = ex as SQLiteException;
-                    if (sqlExp != null)
-                    {
+                    if (sqlExp != null) {
                         // It is recommended that applications respond to the errors listed below 
                         //    by explicitly issuing a ROLLBACK command.
                         // TODO: This rollback failsafe should be localized to all throw sites.
-                        switch (sqlExp.Result)
-                        {
+                        switch (sqlExp.Result) {
                             case Result.IOError:
                             case Result.Full:
                             case Result.Busy:
@@ -979,8 +895,7 @@ namespace SQLite.Net
                                 break;
                         }
                     }
-                    else
-                    {
+                    else {
                         // Call decrement and not VolatileWrite in case we've already 
                         //    created a transaction point in SaveTransactionPoint since the catch.
                         Interlocked.Decrement(ref _transactionDepth);
@@ -989,8 +904,7 @@ namespace SQLite.Net
                     throw;
                 }
             }
-            else
-            {
+            else {
                 // Calling BeginTransaction on an already open transaction is invalid
                 throw new InvalidOperationException("Cannot begin a transaction while already in a transaction.");
             }
@@ -1005,25 +919,20 @@ namespace SQLite.Net
         /// </summary>
         /// <returns>A string naming the savepoint.</returns>
         [PublicAPI]
-        public string SaveTransactionPoint()
-        {
+        public string SaveTransactionPoint() {
             var depth = Interlocked.Increment(ref _transactionDepth) - 1;
             var retVal = "S" + _rand.Next(short.MaxValue) + "D" + depth;
 
-            try
-            {
+            try {
                 Execute("savepoint " + retVal);
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex) {
                 var sqlExp = ex as SQLiteException;
-                if (sqlExp != null)
-                {
+                if (sqlExp != null) {
                     // It is recommended that applications respond to the errors listed below 
                     //    by explicitly issuing a ROLLBACK command.
                     // TODO: This rollback failsafe should be localized to all throw sites.
-                    switch (sqlExp.Result)
-                    {
+                    switch (sqlExp.Result) {
                         case Result.IOError:
                         case Result.Full:
                         case Result.Busy:
@@ -1033,8 +942,7 @@ namespace SQLite.Net
                             break;
                     }
                 }
-                else
-                {
+                else {
                     Interlocked.Decrement(ref _transactionDepth);
                 }
 
@@ -1049,8 +957,7 @@ namespace SQLite.Net
         ///     .
         /// </summary>
         [PublicAPI]
-        public void Rollback()
-        {
+        public void Rollback() {
             RollbackTo(null, false);
         }
 
@@ -1062,8 +969,7 @@ namespace SQLite.Net
         ///     If savepoint is null or empty, this method is equivalent to a call to <see cref="Rollback" />
         /// </param>
         [PublicAPI]
-        public void RollbackTo(string savepoint)
-        {
+        public void RollbackTo(string savepoint) {
             RollbackTo(savepoint, false);
         }
 
@@ -1072,28 +978,21 @@ namespace SQLite.Net
         /// </summary>
         /// <param name="savepoint">the savepoint name/key</param>
         /// <param name="noThrow">true to avoid throwing exceptions, false otherwise</param>
-        private void RollbackTo(string savepoint, bool noThrow)
-        {
+        private void RollbackTo(string savepoint, bool noThrow) {
             // Rolling back without a TO clause rolls backs all transactions 
             //    and leaves the transaction stack empty.   
-            try
-            {
-                if (string.IsNullOrEmpty(savepoint))
-                {
-                    if (Interlocked.Exchange(ref _transactionDepth, 0) > 0)
-                    {
+            try {
+                if (string.IsNullOrEmpty(savepoint)) {
+                    if (Interlocked.Exchange(ref _transactionDepth, 0) > 0) {
                         Execute("rollback");
                     }
                 }
-                else
-                {
+                else {
                     DoSavePointExecute(savepoint, "rollback to ");
                 }
             }
-            catch (SQLiteException)
-            {
-                if (!noThrow)
-                {
+            catch (SQLiteException) {
+                if (!noThrow) {
                     throw;
                 }
             }
@@ -1111,23 +1010,18 @@ namespace SQLite.Net
         ///     <see cref="SaveTransactionPoint" />
         /// </param>
         [PublicAPI]
-        public void Release(string savepoint)
-        {
+        public void Release(string savepoint) {
             DoSavePointExecute(savepoint, "release ");
         }
 
-        private void DoSavePointExecute(string savePoint, string cmd)
-        {
+        private void DoSavePointExecute(string savePoint, string cmd) {
             // Validate the savepoint
             var firstLen = savePoint.IndexOf('D');
-            if (firstLen >= 2 && savePoint.Length > firstLen + 1)
-            {
+            if (firstLen >= 2 && savePoint.Length > firstLen + 1) {
                 int depth;
-                if (int.TryParse(savePoint.Substring(firstLen + 1), out depth))
-                {
+                if (int.TryParse(savePoint.Substring(firstLen + 1), out depth)) {
                     // TODO: Mild race here, but inescapable without locking almost everywhere.
-                    if (0 <= depth && depth < _transactionDepth)
-                    {
+                    if (0 <= depth && depth < _transactionDepth) {
                         Platform.VolatileService.Write(ref _transactionDepth, depth);
                         Execute(cmd + savePoint);
                         return;
@@ -1143,10 +1037,8 @@ namespace SQLite.Net
         ///     Commits the transaction that was begun by <see cref="BeginTransaction" />.
         /// </summary>
         [PublicAPI]
-        public void Commit()
-        {
-            if (Interlocked.Exchange(ref _transactionDepth, 0) != 0)
-            {
+        public void Commit() {
+            if (Interlocked.Exchange(ref _transactionDepth, 0) != 0) {
                 Execute("commit");
             }
             // Do nothing on a commit with no open transaction
@@ -1167,16 +1059,13 @@ namespace SQLite.Net
         ///     <see cref="Commit" />.
         /// </param>
         [PublicAPI]
-        public void RunInTransaction(Action action)
-        {
-            try
-            {
+        public void RunInTransaction(Action action) {
+            try {
                 var savePoint = SaveTransactionPoint();
                 action();
                 Release(savePoint);
             }
-            catch (Exception)
-            {
+            catch (Exception) {
                 Rollback();
                 throw;
             }
@@ -1193,23 +1082,17 @@ namespace SQLite.Net
         ///     The number of rows added to the table.
         /// </returns>
         [PublicAPI]
-        public int InsertAll(IEnumerable objects, bool runInTransaction = true)
-        {
+        public int InsertAll(IEnumerable objects, bool runInTransaction = true) {
             var c = 0;
-            if (runInTransaction)
-            {
-                RunInTransaction(() =>
-                {
-                    foreach (var r in objects)
-                    {
+            if (runInTransaction) {
+                RunInTransaction(() => {
+                    foreach (var r in objects) {
                         c += Insert(r);
                     }
                 });
             }
-            else
-            {
-                foreach (var r in objects)
-                {
+            else {
+                foreach (var r in objects) {
                     c += Insert(r);
                 }
             }
@@ -1230,23 +1113,17 @@ namespace SQLite.Net
         ///     The number of rows added to the table.
         /// </returns>
         [PublicAPI]
-        public int InsertAll(IEnumerable objects, string extra, bool runInTransaction = true)
-        {
+        public int InsertAll(IEnumerable objects, string extra, bool runInTransaction = true) {
             var c = 0;
-            if (runInTransaction)
-            {
-                RunInTransaction(() =>
-                {
-                    foreach (var r in objects)
-                    {
+            if (runInTransaction) {
+                RunInTransaction(() => {
+                    foreach (var r in objects) {
                         c += Insert(r, extra);
                     }
                 });
             }
-            else
-            {
-                foreach (var r in objects)
-                {
+            else {
+                foreach (var r in objects) {
                     c += Insert(r, extra);
                 }
             }
@@ -1267,23 +1144,17 @@ namespace SQLite.Net
         ///     The number of rows added to the table.
         /// </returns>
         [PublicAPI]
-        public int InsertAll(IEnumerable objects, Type objType, bool runInTransaction = true)
-        {
+        public int InsertAll(IEnumerable objects, Type objType, bool runInTransaction = true) {
             var c = 0;
-            if (runInTransaction)
-            {
-                RunInTransaction(() =>
-                {
-                    foreach (var r in objects)
-                    {
+            if (runInTransaction) {
+                RunInTransaction(() => {
+                    foreach (var r in objects) {
                         c += Insert(r, objType);
                     }
                 });
             }
-            else
-            {
-                foreach (var r in objects)
-                {
+            else {
+                foreach (var r in objects) {
                     c += Insert(r, objType);
                 }
             }
@@ -1291,24 +1162,21 @@ namespace SQLite.Net
         }
 
         [PublicAPI]
-        public int InsertOrIgnoreAll (IEnumerable objects)
-        {
-            return InsertAll (objects, "OR IGNORE");
+        public int InsertOrIgnoreAll(IEnumerable objects) {
+            return InsertAll(objects, "OR IGNORE");
         }
 
         [PublicAPI]
-        public int InsertOrIgnore (object obj)
-        {
+        public int InsertOrIgnore(object obj) {
             if (obj == null) {
                 return 0;
             }
-            return Insert (obj, "OR IGNORE", obj.GetType ());
+            return Insert(obj, "OR IGNORE", obj.GetType());
         }
 
         [PublicAPI]
-        public int InsertOrIgnore (object obj, Type objType)
-        {
-            return Insert (obj, "OR IGNORE", objType);
+        public int InsertOrIgnore(object obj, Type objType) {
+            return Insert(obj, "OR IGNORE", objType);
         }
 
         /// <summary>
@@ -1322,10 +1190,8 @@ namespace SQLite.Net
         ///     The number of rows added to the table.
         /// </returns>
         [PublicAPI]
-        public int Insert(object obj)
-        {
-            if (obj == null)
-            {
+        public int Insert(object obj) {
+            if (obj == null) {
                 return 0;
             }
             return Insert(obj, "", obj.GetType());
@@ -1345,10 +1211,8 @@ namespace SQLite.Net
         ///     The number of rows modified.
         /// </returns>
         [PublicAPI]
-        public int InsertOrReplace(object obj)
-        {
-            if (obj == null)
-            {
+        public int InsertOrReplace(object obj) {
+            if (obj == null) {
                 return 0;
             }
             return Insert(obj, "OR REPLACE", obj.GetType());
@@ -1368,13 +1232,10 @@ namespace SQLite.Net
         ///     The total number of rows modified.
         /// </returns>
         [PublicAPI]
-        public int InsertOrReplaceAll(IEnumerable objects)
-        {
+        public int InsertOrReplaceAll(IEnumerable objects) {
             var c = 0;
-            RunInTransaction(() =>
-            {
-                foreach (var r in objects)
-                {
+            RunInTransaction(() => {
+                foreach (var r in objects) {
                     c += InsertOrReplace(r);
                 }
             });
@@ -1395,8 +1256,7 @@ namespace SQLite.Net
         ///     The number of rows added to the table.
         /// </returns>
         [PublicAPI]
-        public int Insert(object obj, Type objType)
-        {
+        public int Insert(object obj, Type objType) {
             return Insert(obj, "", objType);
         }
 
@@ -1417,8 +1277,7 @@ namespace SQLite.Net
         ///     The number of rows modified.
         /// </returns>
         [PublicAPI]
-        public int InsertOrReplace(object obj, Type objType)
-        {
+        public int InsertOrReplace(object obj, Type objType) {
             return Insert(obj, "OR REPLACE", objType);
         }
 
@@ -1439,13 +1298,10 @@ namespace SQLite.Net
         ///     The total number of rows modified.
         /// </returns>
         [PublicAPI]
-        public int InsertOrReplaceAll(IEnumerable objects, Type objType)
-        {
+        public int InsertOrReplaceAll(IEnumerable objects, Type objType) {
             var c = 0;
-            RunInTransaction(() =>
-            {
-                foreach (var r in objects)
-                {
+            RunInTransaction(() => {
+                foreach (var r in objects) {
                     c += InsertOrReplace(r, objType);
                 }
             });
@@ -1466,10 +1322,8 @@ namespace SQLite.Net
         ///     The number of rows added to the table.
         /// </returns>
         [PublicAPI]
-        public int Insert(object obj, string extra)
-        {
-            if (obj == null)
-            {
+        public int Insert(object obj, string extra) {
+            if (obj == null) {
                 return 0;
             }
             return Insert(obj, extra, obj.GetType());
@@ -1492,22 +1346,17 @@ namespace SQLite.Net
         ///     The number of rows added to the table.
         /// </returns>
         [PublicAPI]
-        public int Insert(object obj, string extra, Type objType)
-        {
-            if (obj == null || objType == null)
-            {
+        public int Insert(object obj, string extra, Type objType) {
+            if (obj == null || objType == null) {
                 return 0;
             }
 
             var map = GetMapping(objType);
 
-            if (map.PK != null && map.PK.IsAutoGuid)
-            {
+            if (map.PK != null && map.PK.IsAutoGuid) {
                 var prop = objType.GetRuntimeProperty(map.PK.PropertyName);
-                if (prop != null)
-                {
-                    if (prop.GetValue(obj, null).Equals(Guid.Empty))
-                    {
+                if (prop != null) {
+                    if (prop.GetValue(obj, null).Equals(Guid.Empty)) {
                         prop.SetValue(obj, Guid.NewGuid(), null);
                     }
                 }
@@ -1517,28 +1366,23 @@ namespace SQLite.Net
 
             var cols = replacing ? map.Columns : map.InsertColumns;
             var vals = new object[cols.Length];
-            for (var i = 0; i < vals.Length; i++)
-            {
+            for (var i = 0; i < vals.Length; i++) {
                 vals[i] = cols[i].GetValue(obj);
             }
 
             var insertCmd = GetInsertCommand(map, extra);
             int count;
-            try
-            {
+            try {
                 count = insertCmd.ExecuteNonQuery(vals);
             }
-            catch (SQLiteException ex)
-            {
-                if (Platform.SQLiteApi.ExtendedErrCode(Handle) == ExtendedResult.ConstraintNotNull)
-                {
+            catch (SQLiteException ex) {
+                if (Platform.SQLiteApi.ExtendedErrCode(Handle) == ExtendedResult.ConstraintNotNull) {
                     throw NotNullConstraintViolationException.New(ex.Result, ex.Message, map, obj);
                 }
                 throw;
             }
 
-            if (map.HasAutoIncPK)
-            {
+            if (map.HasAutoIncPK) {
                 var id = Platform.SQLiteApi.LastInsertRowid(Handle);
                 map.SetAutoIncPK(obj, id);
             }
@@ -1546,16 +1390,13 @@ namespace SQLite.Net
             return count;
         }
 
-        private PreparedSqlLiteInsertCommand GetInsertCommand(TableMapping map, string extra)
-        {
+        private PreparedSqlLiteInsertCommand GetInsertCommand(TableMapping map, string extra) {
             ActiveInsertCommand cmd;
-            if (_insertCommandCache == null)
-            {
+            if (_insertCommandCache == null) {
                 _insertCommandCache = new Dictionary<TableMapping, ActiveInsertCommand>();
             }
 
-            if (!_insertCommandCache.TryGetValue(map, out cmd))
-            {
+            if (!_insertCommandCache.TryGetValue(map, out cmd)) {
                 cmd = new ActiveInsertCommand(map);
                 _insertCommandCache[map] = cmd;
             }
@@ -1575,10 +1416,8 @@ namespace SQLite.Net
         ///     The number of rows updated.
         /// </returns>
         [PublicAPI]
-        public int Update(object obj)
-        {
-            if (obj == null)
-            {
+        public int Update(object obj) {
+            if (obj == null) {
                 return 0;
             }
             return Update(obj, obj.GetType());
@@ -1599,11 +1438,9 @@ namespace SQLite.Net
         ///     The number of rows updated.
         /// </returns>
         [PublicAPI]
-        public int Update(object obj, Type objType)
-        {
+        public int Update(object obj, Type objType) {
             int rowsAffected;
-            if (obj == null || objType == null)
-            {
+            if (obj == null || objType == null) {
                 return 0;
             }
 
@@ -1611,31 +1448,27 @@ namespace SQLite.Net
 
             var pk = map.PK;
 
-            if (pk == null)
-            {
+            if (pk == null) {
                 throw new NotSupportedException("Cannot update " + map.TableName + ": it has no PK");
             }
 
             var cols = from p in map.Columns
-                where p != pk
-                select p;
+                       where p != pk && !p.IsCalculatedField
+                       select p;
             var vals = from c in cols
-                select c.GetValue(obj);
+                       select c.GetValue(obj);
             var ps = new List<object>(vals)
             {
                 pk.GetValue(obj)
             };
             var q = string.Format("update \"{0}\" set {1} where {2} = ? ", map.TableName,
                 string.Join(",", (from c in cols
-                    select "\"" + c.Name + "\" = ? ").ToArray()), pk.Name);
-            try
-            {
+                                  select "\"" + c.Name + "\" = ? ").ToArray()), pk.Name);
+            try {
                 rowsAffected = Execute(q, ps.ToArray());
             }
-            catch (SQLiteException ex)
-            {
-                if (ex.Result == Result.Constraint && Platform.SQLiteApi.ExtendedErrCode(Handle) == ExtendedResult.ConstraintNotNull)
-                {
+            catch (SQLiteException ex) {
+                if (ex.Result == Result.Constraint && Platform.SQLiteApi.ExtendedErrCode(Handle) == ExtendedResult.ConstraintNotNull) {
                     throw NotNullConstraintViolationException.New(ex, map, obj);
                 }
 
@@ -1656,23 +1489,17 @@ namespace SQLite.Net
         ///     The number of rows modified.
         /// </returns>
         [PublicAPI]
-        public int UpdateAll(IEnumerable objects, bool runInTransaction = true)
-        {
+        public int UpdateAll(IEnumerable objects, bool runInTransaction = true) {
             var c = 0;
-            if (runInTransaction)
-            {
-                RunInTransaction(() =>
-                {
-                    foreach (var r in objects)
-                    {
+            if (runInTransaction) {
+                RunInTransaction(() => {
+                    foreach (var r in objects) {
                         c += Update(r);
                     }
                 });
             }
-            else
-            {
-                foreach (var r in objects)
-                {
+            else {
+                foreach (var r in objects) {
                     c += Update(r);
                 }
             }
@@ -1689,12 +1516,10 @@ namespace SQLite.Net
         ///     The number of rows deleted.
         /// </returns>
         [PublicAPI]
-        public int Delete(object objectToDelete)
-        {
+        public int Delete(object objectToDelete) {
             var map = GetMapping(objectToDelete.GetType());
             var pk = map.PK;
-            if (pk == null)
-            {
+            if (pk == null) {
                 throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
             }
             var q = string.Format("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pk.Name);
@@ -1714,12 +1539,10 @@ namespace SQLite.Net
         ///     The type of object.
         /// </typeparam>
         [PublicAPI]
-        public int Delete<T>(object primaryKey)
-        {
-            var map = GetMapping(typeof (T));
+        public int Delete<T>(object primaryKey) {
+            var map = GetMapping(typeof(T));
             var pk = map.PK;
-            if (pk == null)
-            {
+            if (pk == null) {
                 throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
             }
             var q = string.Format("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pk.Name);
@@ -1738,9 +1561,8 @@ namespace SQLite.Net
         ///     The type of objects to delete.
         /// </typeparam>
         [PublicAPI]
-        public int DeleteAll<T>()
-        {
-            return DeleteAll(typeof (T));
+        public int DeleteAll<T>() {
+            return DeleteAll(typeof(T));
         }
 
         /// <summary>
@@ -1752,8 +1574,7 @@ namespace SQLite.Net
         ///     The number of objects deleted.
         /// </returns>
         [PublicAPI]
-        public int DeleteAll(Type t)
-        {
+        public int DeleteAll(Type t) {
             var map = GetMapping(t);
             var query = string.Format("delete from \"{0}\"", map.TableName);
             return Execute(query);
@@ -1761,12 +1582,10 @@ namespace SQLite.Net
 
         #region Backup
 
-        public string CreateDatabaseBackup(ISQLitePlatform platform)
-        {
+        public string CreateDatabaseBackup(ISQLitePlatform platform) {
             ISQLiteApiExt sqliteApi = platform.SQLiteApi as ISQLiteApiExt;
 
-            if (sqliteApi == null)
-            {
+            if (sqliteApi == null) {
                 return null;
             }
 
@@ -1775,18 +1594,16 @@ namespace SQLite.Net
             IDbHandle destDB;
             byte[] databasePathAsBytes = GetNullTerminatedUtf8(destDBPath);
             Result r = sqliteApi.Open(databasePathAsBytes, out destDB,
-                (int) (SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite), IntPtr.Zero);
+                (int)(SQLiteOpenFlags.Create | SQLiteOpenFlags.ReadWrite), IntPtr.Zero);
 
-            if (r != Result.OK)
-            {
+            if (r != Result.OK) {
                 throw SQLiteException.New(r, String.Format("Could not open backup database file: {0} ({1})", destDBPath, r));
             }
 
             /* Open the backup object used to accomplish the transfer */
             IDbBackupHandle bHandle = sqliteApi.BackupInit(destDB, "main", this.Handle, "main");
 
-            if (bHandle == null)
-            {
+            if (bHandle == null) {
                 // Close the database connection 
                 sqliteApi.Close(destDB);
 
@@ -1797,12 +1614,10 @@ namespace SQLite.Net
             ** pDb to the backup database. If the return value of backup_step()
             ** indicates that there are still further pages to copy, sleep for
             ** 250 ms before repeating. */
-            do
-            {
+            do {
                 r = sqliteApi.BackupStep(bHandle, 5);
 
-                if (r == Result.OK || r == Result.Busy || r == Result.Locked)
-                {
+                if (r == Result.OK || r == Result.Busy || r == Result.Locked) {
                     sqliteApi.Sleep(250);
                 }
             } while (r == Result.OK || r == Result.Busy || r == Result.Locked);
@@ -1810,8 +1625,7 @@ namespace SQLite.Net
             /* Release resources allocated by backup_init(). */
             r = sqliteApi.BackupFinish(bHandle);
 
-            if (r != Result.OK)
-            {
+            if (r != Result.OK) {
                 // Close the database connection 
                 sqliteApi.Close(destDB);
 
@@ -1826,48 +1640,38 @@ namespace SQLite.Net
 
         #endregion
 
-        ~SQLiteConnection()
-        {
+        ~SQLiteConnection() {
             Dispose(false);
         }
 
         [PublicAPI]
-        protected virtual void Dispose(bool disposing)
-        {
+        protected virtual void Dispose(bool disposing) {
             Close();
         }
 
         [PublicAPI]
-        public void Close()
-        {
-            if (_open && Handle != NullHandle)
-            {
-                try
-                {
-                    if (_insertCommandCache != null)
-                    {
-                        foreach (var sqlInsertCommand in _insertCommandCache.Values)
-                        {
+        public void Close() {
+            if (_open && Handle != NullHandle) {
+                try {
+                    if (_insertCommandCache != null) {
+                        foreach (var sqlInsertCommand in _insertCommandCache.Values) {
                             sqlInsertCommand.Dispose();
                         }
                     }
                     var r = Platform.SQLiteApi.Close(Handle);
-                    if (r != Result.OK)
-                    {
+                    if (r != Result.OK) {
                         var msg = Platform.SQLiteApi.Errmsg16(Handle);
                         throw SQLiteException.New(r, msg);
                     }
                 }
-                finally
-                {
+                finally {
                     Handle = NullHandle;
                     _open = false;
                 }
             }
         }
 
-        public class ColumnInfo
-        {
+        public class ColumnInfo {
             //			public int cid { get; set; }
 
             [PublicAPI]
@@ -1885,22 +1689,19 @@ namespace SQLite.Net
             //			public int pk { get; set; }
 
             [PublicAPI]
-            public override string ToString()
-            {
+            public override string ToString() {
                 return Name;
             }
         }
 
-        private struct IndexInfo
-        {
+        private struct IndexInfo {
             public List<IndexedColumn> Columns;
             public string IndexName;
             public string TableName;
             public bool Unique;
         }
 
-        private struct IndexedColumn
-        {
+        private struct IndexedColumn {
             public string ColumnName;
             public int Order;
         }
