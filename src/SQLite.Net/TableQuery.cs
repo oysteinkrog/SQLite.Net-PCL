@@ -116,16 +116,16 @@ namespace SQLite.Net
         }
 
         [PublicAPI]
-        public IEnumerable<U> MapTo<U>(
+        public IEnumerable<TMapped> MapTo<TMapped>(
             bool selectFromAvailableProperties = true)
         {
             if (selectFromAvailableProperties)
                 SelectColumns(_sqlitePlatform.ReflectionService
-                    .GetPublicInstanceProperties(typeof(U))
+                    .GetPublicInstanceProperties(typeof(TMapped))
                     .Select(prop => prop.Name)
                     .ToArray());
             
-            return GetEnumerable<U>();
+            return GetEnumerable<TMapped>();
         }
         
         [PublicAPI]
@@ -372,9 +372,9 @@ namespace SQLite.Net
             string selectSqlStatement = "";
 
             for (; i < propertiesName.Length - 1; i++)
-                selectSqlStatement += "`{" + i + "}`, ";
+                selectSqlStatement += "\"{" + i + "}\", ";
 
-            return SelectColumns(selectSqlStatement + "`{" + i + "}`", propertiesName);
+            return SelectColumns(selectSqlStatement + "\"{" + i + "}\"", propertiesName);
         }
 
         public TableQuery<T> SelectColumns(string selectSqlStatement,

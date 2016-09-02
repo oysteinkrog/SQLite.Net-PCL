@@ -62,7 +62,7 @@ namespace SQLite.Net.Tests
 
                 Assert.That(
                     db.Table<TestObj>()
-                      .SelectColumns("`{0}` * 2 as `Order`", "Order")
+                      .SelectColumns("\"{0}\" * 2 as \"Order\"", "Order")
                       .Select(obj => obj.Order).First(),
                     Is.EqualTo(10));
             }
