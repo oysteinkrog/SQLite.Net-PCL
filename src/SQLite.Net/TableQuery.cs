@@ -390,7 +390,7 @@ namespace SQLite.Net
                 if (column == null)
                     throw new ArgumentException(
                         "No such column " + propertiesName[i],
-                        nameof(propertiesName));
+                        "propertiesName");
 
                 propertiesName[i] = column.Name;
             }

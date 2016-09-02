@@ -12,11 +12,19 @@ namespace SQLite.Net
 
 		public string GetColumnName(PropertyInfo p)
 		{
-			var colAttr = p.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault();
+			var colAttr =
+                p.GetCustomAttributes<ColumnAttribute>(true).FirstOrDefault();
 			return colAttr == null ? p.Name : colAttr.Name;
 		}
 
-		public bool IsIgnored(PropertyInfo p)
+	    public string GetTableName(TypeInfo t)
+        {
+	        var tableAttr =
+                t.GetCustomAttributes<TableAttribute>(true).FirstOrDefault();
+	        return tableAttr == null ? t.Name : tableAttr.Name;
+        }
+
+	    public bool IsIgnored(PropertyInfo p)
 		{
 			return p.IsDefined(typeof (IgnoreAttribute), true);
 		}

@@ -68,22 +68,48 @@ namespace SQLite.Net.Tests
 
                 try
                 {
-                    CollectionAssert.AreEqual(
+                    AssertCollectionContent(
                         db.Table<TestObj>().OrderBy(k => k.Id),
                         db.Table<TestObj>().OrderBy(k => k.Id));
-                    CollectionAssert.AreNotEqual(
+                    AssertCollectionContent(
                         db.Table<TestObj>().OrderBy(k => k.Id),
-                        db.Table<TestObj>().OrderByDescending(k => k.Id));
-                    CollectionAssert.AreNotEqual(
+                        db.Table<TestObj>().OrderByDescending(k => k.Id),
+                        true);
+                    AssertCollectionContent(
                         db.Table<TestObj>().OrderByRand(),
-                        db.Table<TestObj>().OrderByRand());
+                        db.Table<TestObj>().OrderByRand(),
+                        true);
                 }
                 catch (NotImplementedException)
                 {
                     //Allow Not implemented exceptions as the selection may be too complex.
                 }
             }
-           
+        }
+
+        private void AssertCollectionContent<T>(
+            IEnumerable<T> col1, IEnumerable<T> col2, bool negate = false)
+        {
+            Assert.AreEqual(col1.Count(), col2.Count());
+
+            var enumerator1 = col1.GetEnumerator();
+            var enumerator2 = col2.GetEnumerator();
+
+            while (enumerator1.MoveNext() && enumerator2.MoveNext())
+            {
+                T item1 = enumerator1.Current;
+                T item2 = enumerator2.Current;
+
+                if (negate)
+                {
+                    Assert.AreNotEqual(item1, item2);
+
+                    // Only one comparison suffice to assert condition true
+                    break;
+                }
+                
+                Assert.AreEqual(item1, item2);
+            }
         }
     }
 }

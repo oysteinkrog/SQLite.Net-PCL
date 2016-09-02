@@ -44,10 +44,7 @@ namespace SQLite.Net
 			}
 
             MappedType = type;
-
-            var tableAttr = type.GetTypeInfo().GetCustomAttributes<TableAttribute>().FirstOrDefault();
-
-            TableName = tableAttr != null ?  tableAttr.Name : MappedType.Name;
+            TableName = infoProvider.GetTableName(MappedType.GetTypeInfo());
 
             var props = properties;
 
