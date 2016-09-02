@@ -30,7 +30,7 @@ namespace SQLite.Net.Tests
             
             public override bool Equals(Object obj)
             {
-                return Id == (obj as TestObj)?.Id;
+                return obj is TestObj && Id == ((TestObj)obj).Id;
             }
 
             protected bool Equals(TestObj other)
