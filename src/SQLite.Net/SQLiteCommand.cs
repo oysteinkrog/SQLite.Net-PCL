@@ -87,6 +87,12 @@ namespace SQLite.Net
         }
 
         [PublicAPI]
+        public List<ReaderItem> ExecuteReader()
+        {
+            return ExecuteDeferredReader().ToList();
+        }
+
+        [PublicAPI]
         public List<T> ExecuteQuery<T>()
         {
             return ExecuteDeferredQuery<T>(_conn.GetMapping(typeof (T))).ToList();
@@ -113,6 +119,42 @@ namespace SQLite.Net
         protected virtual void OnInstanceCreated(object obj)
         {
             // Can be overridden.
+        }
+
+        [PublicAPI]
+        public IEnumerable<ReaderItem> ExecuteDeferredReader()
+        {
+            _conn.TraceListener.WriteLine("Executing Query: {0}", this);
+
+            var stmt = Prepare();
+            try
+            {
+                // We need to manage columns dynamically in order to create columns
+                var cols = new TableMapping.Column[_sqlitePlatform.SQLiteApi.ColumnCount(stmt)];
+                
+                while (_sqlitePlatform.SQLiteApi.Step(stmt) == Result.Row)
+                {
+                    var obj = new ReaderItem();
+                    for (var i = 0; i < cols.Length; i++)
+                    {
+                        if (cols[i] == null)
+                        {
+                            // We try to create column mapping if it's not already created :
+                            var name = _sqlitePlatform.SQLiteApi.ColumnName16(stmt, i);
+                            cols[i] = new TableMapping.Column(name, _sqlitePlatform.SQLiteApi.ColumnType(stmt, i).ToType());
+                        }
+                        var colType = _sqlitePlatform.SQLiteApi.ColumnType(stmt, i);
+                        var val = ReadCol(stmt, i, colType, cols[i].ColumnType);
+                        obj[cols[i].Name] = val;
+                    }
+                    OnInstanceCreated(obj);
+                    yield return obj;
+                }
+            }
+            finally
+            {
+                _sqlitePlatform.SQLiteApi.Finalize(stmt);
+            }
         }
 
         [PublicAPI]

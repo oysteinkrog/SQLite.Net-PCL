@@ -137,6 +137,17 @@ namespace SQLite.Net
         public class Column
         {
             private readonly PropertyInfo _prop;
+            
+            /// <summary>
+            /// Internal constructor used for Dynamic queries that returns IDictionary
+            /// </summary>
+            /// <param name="name"></param>
+            /// <param name="columnType"></param>
+            internal Column(string name, Type columnType)
+            {
+                Name = name;
+                ColumnType = columnType;
+            }
 
             [PublicAPI]
 			public Column(PropertyInfo prop, CreateFlags createFlags = CreateFlags.None, IColumnInformationProvider infoProvider = null)

@@ -716,6 +716,29 @@ namespace SQLite.Net
         /// <summary>
         ///     Creates a SQLiteCommand given the command text (SQL) with arguments. Place a '?'
         ///     in the command text for each of the arguments and then executes that command.
+        ///     It returns each row of the result using the specified mapping. This function is
+        ///     only used by libraries in order to query the database via introspection. It is
+        ///     normally not used.
+        /// </summary>
+        /// <param name="query">
+        ///     The fully escaped SQL.
+        /// </param>
+        /// <param name="args">
+        ///     Arguments to substitute for the occurences of '?' in the query.
+        /// </param>
+        /// <returns>
+        ///     An enumerable with one result for each row returned by the query.
+        /// </returns>
+        [PublicAPI]
+        public List<ReaderItem> ExecuteReader(string query, params object[] args)
+        {
+            var cmd = CreateCommand(query, args);
+            return cmd.ExecuteReader();
+        }
+
+        /// <summary>
+        ///     Creates a SQLiteCommand given the command text (SQL) with arguments. Place a '?'
+        ///     in the command text for each of the arguments and then executes that command.
         ///     It returns each row of the result using the mapping automatically generated for
         ///     the given type.
         /// </summary>
