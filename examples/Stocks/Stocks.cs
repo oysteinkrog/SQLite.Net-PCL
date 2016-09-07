@@ -80,7 +80,7 @@ namespace Stocks
         public IEnumerable<ReaderItem> ExecuteCustomReader(string tableName)
         {
             // We try to get all fields of Valuation table
-            return ExecuteReader($"select * from {tableName}");
+            return ExecuteReader(string.Format("select * from {0}", tableName));
         }
 
         public void UpdateStock (string stockSymbol)

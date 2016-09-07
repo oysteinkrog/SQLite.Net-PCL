@@ -83,7 +83,7 @@ namespace SQLite.Net.Tests
 
             string sumColumnName = "SumResult";
 
-            var r = db.ExecuteReader($"SELECT Sum(Two) as {sumColumnName} FROM TestTable");
+            var r = db.ExecuteReader(string.Format("SELECT Sum(Two) as {0} FROM TestTable", sumColumnName));
 
             // All items are 
             Assert.AreEqual(1, r.Count);
