@@ -12,7 +12,16 @@ using System.Globalization;
 
 namespace Stocks
 {
-	public class Stock
+    //public class ExtendedStock : Stock
+    //{
+    //    [MaxLength(255)]
+    //    public string Comment { get; set; }
+
+    //    [MaxLength(255)]
+    //    public DateTime CreatedOnUtc { get; set; }
+    //}
+
+    public class Stock
 	{
 		[PrimaryKey, AutoIncrement]
 		public int Id { get; set; }
@@ -68,7 +77,13 @@ namespace Stocks
 					select s;
 		}
 
-		public void UpdateStock (string stockSymbol)
+        public IEnumerable<ReaderItem> ExecuteCustomReader(string tableName)
+        {
+            // We try to get all fields of Valuation table
+            return ExecuteReader($"select * from {tableName}");
+        }
+
+        public void UpdateStock (string stockSymbol)
 		{
 			//
 			// Ensure that there is a valid Stock in the DB

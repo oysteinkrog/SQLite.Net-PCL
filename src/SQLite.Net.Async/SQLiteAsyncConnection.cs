@@ -547,6 +547,69 @@ namespace SQLite.Net.Async
             }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
 
+        /// <summary>
+        ///     Creates a SQLiteCommand given the command text (SQL) with arguments. Place a '?'
+        ///     in the command text for each of the arguments and then executes that command.
+        ///     It returns each row of the result using the specified mapping. This function is
+        ///     only used by libraries in order to query the database via introspection. It is
+        ///     normally not used.
+        /// </summary>
+        /// <param name="query">
+        ///     The fully escaped SQL.
+        /// </param>
+        /// <param name="args">
+        ///     Arguments to substitute for the occurences of '?' in the query.
+        /// </param>
+        /// <returns>
+        ///     An enumerable with one result for each row returned by the query.
+        /// </returns>
+        [PublicAPI]
+        public Task<List<ReaderItem>> ExecuteReaderAsync([NotNull] string sql, [NotNull] params object[] args)
+        {
+            return ExecuteReaderAsync(CancellationToken.None, sql, args);
+        }
+
+        /// <summary>
+        ///     Creates a SQLiteCommand given the command text (SQL) with arguments. Place a '?'
+        ///     in the command text for each of the arguments and then executes that command.
+        ///     It returns each row of the result using the specified mapping. This function is
+        ///     only used by libraries in order to query the database via introspection. It is
+        ///     normally not used.
+        /// </summary>
+        /// <param name="query">
+        ///     The fully escaped SQL.
+        /// </param>
+        /// <param name="args">
+        ///     Arguments to substitute for the occurences of '?' in the query.
+        /// </param>
+        /// <returns>
+        ///     An enumerable with one result for each row returned by the query.
+        /// </returns>
+        [PublicAPI]
+        public Task<List<ReaderItem>> ExecuteReaderAsync(CancellationToken cancellationToken, [NotNull] string sql, [NotNull] params object[] args)
+        {
+            if (sql == null)
+            {
+                throw new ArgumentNullException("sql");
+            }
+            if (args == null)
+            {
+                throw new ArgumentNullException("args");
+            }
+
+            return Task.Factory.StartNew(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var conn = GetConnection();
+                using (conn.Lock())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var command = conn.CreateCommand(sql, args);
+                    return command.ExecuteReader();
+                }
+            }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
+        }
+
         [PublicAPI]
         public Task ExecuteNonQueryAsync([NotNull] string sql, [NotNull] params object[] args)
         {

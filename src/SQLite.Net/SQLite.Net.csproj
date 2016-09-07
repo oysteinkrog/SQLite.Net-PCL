@@ -75,6 +75,7 @@
     <Compile Include="ContractResolver.cs" />
     <Compile Include="IContractResolver.cs" />
     <Compile Include="Interop\ColType.cs" />
+    <Compile Include="Interop\ColTypeExtensions.cs" />
     <Compile Include="Interop\ConfigOption.cs" />
     <Compile Include="Interop\ExtendedResult.cs" />
     <Compile Include="Interop\IDbHandle.cs" />
@@ -100,6 +101,7 @@
     <Compile Include="Attributes\IndexedAttribute.cs" />
     <Compile Include="Attributes\MaxLengthAttribute.cs" />
     <Compile Include="Attributes\PrimaryKeyAttribute.cs" />
+    <Compile Include="ReaderRow.cs" />
     <Compile Include="SQLiteException.cs" />
     <Compile Include="SQLiteCommand.cs" />
     <Compile Include="SQLiteConnection.cs" />
