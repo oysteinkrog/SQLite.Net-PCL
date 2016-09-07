@@ -97,7 +97,7 @@ namespace SQLite.Net.Tests
             Assert.AreEqual(sumColumnName, firstItem.Fields[0]);
 
             // Item must be a int            
-            Assert.AreEqual(typeof(int), firstItem[sumColumnName].GetType());
+            Assert.AreEqual(typeof(double), firstItem[sumColumnName].GetType());
 
             // Sum must be equal to 
             Assert.AreEqual(Count*2, firstItem[sumColumnName]);
