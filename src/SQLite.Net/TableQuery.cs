@@ -253,9 +253,21 @@ namespace SQLite.Net
         }
 
         [PublicAPI]
+        public TableQuery<T> OrderBy(string propertyName)
+        {
+            return AddOrderBy(propertyName, true);
+        }
+
+        [PublicAPI]
         public TableQuery<T> OrderByDescending<TValue>(Expression<Func<T, TValue>> orderExpr)
         {
             return AddOrderBy(orderExpr, false);
+        }
+
+        [PublicAPI]
+        public TableQuery<T> OrderByDescending(string propertyName)
+        {
+            return AddOrderBy(propertyName, false);
         }
 
         [PublicAPI]
@@ -265,11 +277,24 @@ namespace SQLite.Net
         }
 
         [PublicAPI]
+        public TableQuery<T> ThenBy(string propertyName)
+        {
+            return AddOrderBy(propertyName, true);
+        }
+
+        [PublicAPI]
         public TableQuery<T> ThenByDescending<TValue>(Expression<Func<T, TValue>> orderExpr)
         {
             return AddOrderBy(orderExpr, false);
         }
 
+        [PublicAPI]
+        public TableQuery<T> ThenByDescending(string propertyName)
+        {
+            return AddOrderBy(propertyName, false);
+        }
+
+        [PublicAPI]
         public TableQuery<T> OrderByRand()
         {
             if (_orderBys != null)
@@ -282,7 +307,8 @@ namespace SQLite.Net
             return q;
         }
 
-        private TableQuery<T> AddOrderBy<TValue>([NotNull] Expression<Func<T, TValue>> orderExpr, bool asc)
+        [PublicAPI]
+        public TableQuery<T> AddOrderBy<TValue>([NotNull]Expression<Func<T, TValue>> orderExpr, bool asc)
         {
             if (orderExpr == null)
             {
@@ -314,16 +340,26 @@ namespace SQLite.Net
             {
                 throw new NotSupportedException("Order By does not support: " + orderExpr);
             }
+
+            return AddOrderBy(mem.Member.Name, asc);
+        }
+
+        [PublicAPI]
+        public TableQuery<T> AddOrderBy([NotNull] string propertyName, bool asc)
+        {
             var q = (TableQuery<T>)Clone();
+
             if (q._orderBys == null)
             {
                 q._orderBys = new List<Ordering>();
             }
+
             q._orderBys.Add(new Ordering
             {
-                ColumnName = Table.FindColumnWithPropertyName(mem.Member.Name).Name,
+                ColumnName = Table.FindColumnWithPropertyName(propertyName).Name,
                 Ascending = asc
             });
+
             return q;
         }
 
