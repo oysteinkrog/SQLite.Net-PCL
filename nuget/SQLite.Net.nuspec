@@ -47,10 +47,7 @@
         <file src="SQLite.Net.Platform.WindowsPhone8\x86\SQLite.Net.Platform.WindowsPhone8.dll" target="lib\windowsphone8\x86\SQLite.Net.Platform.WindowsPhone8.dll" />
 
         <!-- Win32 -->
-        <file src="SQLite.Net.Platform.Win32\SQLite.Net.Platform.Win32.dll" target="lib\net4\SQLite.Net.Platform.Win32.dll" />
-
-        <!-- Generic -->
-        <file src="SQLite.Net.Platform.Generic\SQLite.Net.Platform.Generic.dll" target="lib\net40\SQLite.Net.Platform.Generic.dll"/>
+        <file src="SQLite.Net.Platform.Win32\SQLite.Net.Platform.Win32.dll" target="lib\net40\SQLite.Net.Platform.Win32.dll" />
 
         <!-- PCL -->
         <file src="SQLite.Net\_._" target="lib\portable-win8+net45+wp8+wpa81+MonoAndroid1+MonoTouch1\_._" />
