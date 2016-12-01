@@ -34,7 +34,7 @@ namespace SQLite.Net.Platform.Win32
             if (interopPath == null)
             {
                 // no NativeInteropSearchPath given (or nothing found using this path) so load native library from assembly execution direcotry
-                string assemblyCurrentPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                string assemblyCurrentPath = AppDomain.CurrentDomain.BaseDirectory;
                 string relativePath = architectureDirectory + "\\" + interopFilename;
                 string assemblyInteropPath = Path.Combine(assemblyCurrentPath, architectureDirectory, interopFilename);
 
