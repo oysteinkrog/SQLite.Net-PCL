@@ -471,7 +471,7 @@ namespace SQLite.Net
             {
                 if (_conn.StoreDateTimeAsTicks)
                 {
-                    return new DateTime(_sqlitePlatform.SQLiteApi.ColumnInt64(stmt, index), DateTimeKind.Utc);
+                    return new DateTime(_sqlitePlatform.SQLiteApi.ColumnInt64(stmt, index), DateTimeKind.Utc).ToLocalTime();
                 }
                 return DateTime.Parse(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index), CultureInfo.InvariantCulture);
             }
@@ -484,7 +484,7 @@ namespace SQLite.Net
                 DateTime value;
                 if (_conn.StoreDateTimeAsTicks)
                 {
-                    value = new DateTime(_sqlitePlatform.SQLiteApi.ColumnInt64(stmt, index), DateTimeKind.Utc);
+                    value = new DateTime(_sqlitePlatform.SQLiteApi.ColumnInt64(stmt, index), DateTimeKind.Utc).ToLocalTime();
                 }
                 else
                 {
