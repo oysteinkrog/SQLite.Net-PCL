@@ -1147,9 +1147,29 @@ namespace SQLite.Net
         {
             if (Interlocked.Exchange(ref _transactionDepth, 0) != 0)
             {
-                Execute("commit");
+                // Do nothing on a commit with no open transaction
+
+                try
+                {
+                    Execute("commit");
+                }
+                catch (Exception)
+                {
+                    // something went wrong. at least we should clean up
+                    try
+                    {
+                        Execute("rollback");
+                    }
+                    catch 
+                    {
+                        // if rollback won't work (e.g. commit was already ok) just silent fail
+                        // i did not see this, but just to be safe
+                    }
+                    
+                    // and throw the original exception anyway
+                    throw;
+                }
             }
-            // Do nothing on a commit with no open transaction
         }
 
         /// <summary>
