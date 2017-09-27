@@ -121,6 +121,36 @@ namespace SQLite.Net
         }
 
         [PublicAPI]
+        public TableQuery<T> AnyOf(params Expression<Func<T, bool>>[] predExprs)
+        {
+            if (predExprs.Length == 0)
+                throw new ArgumentException("predExprs is empty");
+
+            Expression[] preds = new Expression[predExprs.Length];
+            int i = 0;
+            foreach (Expression<Func<T, bool>> predExpr in predExprs)
+            {
+                if (predExpr == null)
+                {
+                    throw new ArgumentNullException("predExpr");
+                }
+                if (predExpr.NodeType != ExpressionType.Lambda)
+                {
+                    throw new NotSupportedException("Must be a predicate");
+                }
+                var lambda = (LambdaExpression)predExpr;
+                var pred = lambda.Body;
+                preds[i] = pred;
+
+                i++;
+            }
+
+            var q = Clone<T>();
+            q.AddAnyOf(preds);
+            return q;
+        }
+
+        [PublicAPI]
         public TableQuery<T> Take(int n)
         {
             var q = Clone<T>();
@@ -275,6 +305,27 @@ namespace SQLite.Net
             {
                 _where = Expression.AndAlso(_where, pred);
             }
+        }
+
+        private void AddAnyOf(Expression[] preds)
+        {
+            if (preds.Length == 0)
+            {
+                throw new ArgumentException("preds is empty");
+            }
+            if (_limit != null || _offset != null)
+            {
+                throw new NotSupportedException("Cannot call anyof after a skip or a take");
+            }
+
+            var expr = preds[0];
+            for (int i = 1, len = preds.Length; i < len; i++)
+            {
+                var pred = preds[i];
+                expr = Expression.OrElse(expr, pred);
+            }
+
+            AddWhere(expr);
         }
 
         [PublicAPI]
