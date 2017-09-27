@@ -473,7 +473,7 @@ namespace SQLite.Net
                 {
                     return new DateTime(_sqlitePlatform.SQLiteApi.ColumnInt64(stmt, index), DateTimeKind.Utc);
                 }
-                return DateTime.Parse(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index), CultureInfo.InvariantCulture);
+                return DateTime.Parse(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index), CultureInfo.InvariantCulture).ToUniversalTime();
             }
             if (clrType == typeof (DateTimeOffset))
             {
@@ -488,7 +488,7 @@ namespace SQLite.Net
                 }
                 else
                 {
-                    value = DateTime.Parse(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index), CultureInfo.InvariantCulture);
+                    value = DateTime.Parse(_sqlitePlatform.SQLiteApi.ColumnText16(stmt, index), CultureInfo.InvariantCulture).ToUniversalTime();
                 }
                 return Activator.CreateInstance(clrType, value);
             }

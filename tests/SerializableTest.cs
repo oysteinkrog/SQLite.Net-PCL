@@ -133,6 +133,34 @@ namespace SQLite.Net.Tests
 
             Assert.That(found.DateTimeValue.InnerValue.ToLocalTime(), Is.EqualTo(value1.ToLocalTime()));
             Assert.That(found.DateTimeValue2.InnerValue.ToLocalTime(), Is.EqualTo(value2.ToLocalTime()));
+
+            Assert.That(found.DateTimeValue.InnerValue.Kind, Is.EqualTo(DateTimeKind.Utc));
+            Assert.That(found.DateTimeValue2.InnerValue.Kind, Is.EqualTo(DateTimeKind.Utc));
+        }
+
+        [Test]
+        public void SupportsSerializableDateTimeWithStrings()
+        {
+            var dbStrings = new TestDb(storeDateTimeAsTicks: false);
+            dbStrings.CreateTable<ComplexType>();
+
+            DateTime value1 = DateTime.UtcNow;
+            DateTime value2 = DateTime.Now;
+            var model = new ComplexType
+            {
+                DateTimeValue = new SerializableDateTime(value1),
+                DateTimeValue2 = new SerializableDateTime(value2)
+            };
+            dbStrings.Insert(model);
+            ComplexType found = dbStrings.Get<ComplexType>(m => m.ID == model.ID);
+            Assert.That(found.DateTimeValue.InnerValue.ToUniversalTime(), Is.EqualTo(value1.ToUniversalTime()));
+            Assert.That(found.DateTimeValue2.InnerValue.ToUniversalTime(), Is.EqualTo(value2.ToUniversalTime()));
+
+            Assert.That(found.DateTimeValue.InnerValue.ToLocalTime(), Is.EqualTo(value1.ToLocalTime()));
+            Assert.That(found.DateTimeValue2.InnerValue.ToLocalTime(), Is.EqualTo(value2.ToLocalTime()));
+
+            Assert.That(found.DateTimeValue.InnerValue.Kind, Is.EqualTo(DateTimeKind.Utc));
+            Assert.That(found.DateTimeValue2.InnerValue.Kind, Is.EqualTo(DateTimeKind.Utc));
         }
 
         [Test]
