@@ -15,6 +15,7 @@ namespace SQLite.Net
 		bool IsMarkedNotNull(MemberInfo p);
 		bool IsIgnored(PropertyInfo p);
 		string GetColumnName(PropertyInfo p);
+	    string GetTableName(TypeInfo t);
 	}
 }
 

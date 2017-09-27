@@ -77,7 +77,12 @@ namespace SQLite.Net.Tests
 				return p.Name;
 			}
 
-			public bool IsIgnored(PropertyInfo p)
+		    public string GetTableName(TypeInfo t)
+		    {
+		        return t.Name;
+		    }
+
+		    public bool IsIgnored(PropertyInfo p)
 			{
 				return false;
 			}
