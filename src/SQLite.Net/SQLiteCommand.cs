@@ -345,12 +345,20 @@ namespace SQLite.Net
                 {
                     if (storeDateTimeAsTicks)
                     {
-                        long ticks = ((DateTime) value).ToUniversalTime().Ticks;
+                        DateTime date = (DateTime)value;
+                        if (date != DateTime.MinValue)
+                            date = date.ToUniversalTime();
+
+                        long ticks = date.Ticks;
                         isqLite3Api.BindInt64(stmt, index, ticks);
                     }
                     else
                     {
-                        string val = ((DateTime) value).ToUniversalTime().ToString(DateTimeFormat, CultureInfo.InvariantCulture);
+                        DateTime date = (DateTime)value;
+                        if (date != DateTime.MinValue)
+                            date = date.ToUniversalTime();
+
+                        string val = date.ToString(DateTimeFormat, CultureInfo.InvariantCulture);
                         isqLite3Api.BindText16(stmt, index, val, -1, NegativePointer);
                     }
                 }
