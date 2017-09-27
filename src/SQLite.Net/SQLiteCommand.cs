@@ -40,6 +40,7 @@ namespace SQLite.Net
         private readonly SQLiteConnection _conn;
         private readonly ISQLitePlatform _sqlitePlatform;
         private const string DateTimeFormat = "yyyy-MM-ddTHH:mm:ss.fffffffZ";
+        private readonly char[] identifierEscapeCharacters = new [] { '"', '`', '[', ']' };
 
         internal SQLiteCommand(ISQLitePlatform platformImplementation, SQLiteConnection conn)
         {
@@ -128,7 +129,8 @@ namespace SQLite.Net
                 for (var i = 0; i < cols.Length; i++)
                 {
                     var name = _sqlitePlatform.SQLiteApi.ColumnName16(stmt, i);
-                    cols[i] = map.FindColumn(name);
+                    var trimmedName = TrimIdentifierKeywordEscapeCharacters(name);
+                    cols[i] = map.FindColumn(trimmedName);
                 }
 
                 while (_sqlitePlatform.SQLiteApi.Step(stmt) == Result.Row)
@@ -583,6 +585,21 @@ namespace SQLite.Net
                 return _conn.Serializer.Deserialize(bytes, clrType);
             }
             throw new NotSupportedException("Don't know how to read " + clrType);
+        }
+
+        private string TrimIdentifierKeywordEscapeCharacters(string identifier)
+        {
+          string trimmedIdentifier = identifier;
+          if (identifierEscapeCharacters.Contains(trimmedIdentifier[0]))
+          {
+              trimmedIdentifier = trimmedIdentifier.Remove(0, 1);
+          }
+          int lastCharIndex = trimmedIdentifier.Length - 1;
+          if (identifierEscapeCharacters.Contains(trimmedIdentifier[lastCharIndex]))
+          {
+              trimmedIdentifier = trimmedIdentifier.Remove(lastCharIndex);
+          }
+          return trimmedIdentifier;
         }
 
         private class Binding
