@@ -63,9 +63,7 @@ namespace Stocks
 		}
 		public IEnumerable<Stock> QueryAllStocks ()
 		{
-			return	from s in Table<Stock> ()
-					orderby s.Symbol
-					select s;
+		    return Table<Stock>().OrderBy(s => s.Symbol.ToLower());
 		}
 
 		public void UpdateStock (string stockSymbol)
