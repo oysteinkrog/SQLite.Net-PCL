@@ -227,32 +227,47 @@ namespace SQLite.Net
             }
             var lambda = (LambdaExpression) orderExpr;
 
-            MemberExpression mem;
+            MemberExpression mem = null;
+            Expression methodCallExpression = null;
 
-            var unary = lambda.Body as UnaryExpression;
-            if (unary != null && unary.NodeType == ExpressionType.Convert)
+            if (lambda.Body is MethodCallExpression)
             {
-                mem = unary.Operand as MemberExpression;
+                methodCallExpression = lambda.Body;
             }
             else
             {
-                mem = lambda.Body as MemberExpression;
+                var unary = lambda.Body as UnaryExpression;
+                if (unary != null && unary.NodeType == ExpressionType.Convert)
+                {
+                    mem = unary.Operand as MemberExpression;
+                }
+                else
+                {
+                    mem = lambda.Body as MemberExpression;
+                }
             }
 
-            if (mem == null || (mem.Expression.NodeType != ExpressionType.Parameter))
+            if ((mem == null || mem.Expression.NodeType != ExpressionType.Parameter) && methodCallExpression == null)
             {
                 throw new NotSupportedException("Order By does not support: " + orderExpr);
             }
+
             var q = Clone<T>();
             if (q._orderBys == null)
             {
                 q._orderBys = new List<Ordering>();
             }
-            q._orderBys.Add(new Ordering
+
+            var ordering = new Ordering
             {
-                ColumnName = Table.FindColumnWithPropertyName(mem.Member.Name).Name,
-                Ascending = asc
-            });
+                Ascending = asc,
+                OrderByExpression = methodCallExpression
+            };
+
+            if (mem != null)
+                ordering.ColumnName = Table.FindColumnWithPropertyName(mem.Member.Name).Name;
+
+            q._orderBys.Add(ordering);
             return q;
         }
 
@@ -314,8 +329,9 @@ namespace SQLite.Net
             }
             if ((_orderBys != null) && (_orderBys.Count > 0))
             {
+                List<object> orderByArgs = new List<object>();
                 var t = string.Join(", ",
-                    _orderBys.Select(o => "\"" + o.ColumnName + "\"" + (o.Ascending ? "" : " desc")).ToArray());
+                    _orderBys.Select(o => (o.OrderByExpression != null ? CompileExpr(o.OrderByExpression, orderByArgs).CommandText : ("\"" + o.ColumnName + "\"")) + (o.Ascending ? "" : " desc")).ToArray());
                 cmdText += " order by " + t;
             }
             if (_limit.HasValue)

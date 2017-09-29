@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+using System.Linq.Expressions;
 using JetBrains.Annotations;
 
 namespace SQLite.Net
@@ -30,6 +31,8 @@ namespace SQLite.Net
         {
             [CanBeNull]
             public string ColumnName { get; set; }
+
+            public Expression OrderByExpression { get; set; }
 
             public bool Ascending { get; set; }
         }
