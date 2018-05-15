@@ -60,15 +60,6 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Bcl">
-      <Version>1.1.10</Version>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Bcl.Async">
-      <Version>1.0.168</Version>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Bcl.Build">
-      <Version>1.0.21</Version>
-    </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
       <Version>7.0.1</Version>
     </PackageReference>
