@@ -64,7 +64,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json">
-      <Version>7.0.1</Version>
+      <Version>11.0.2</Version>
     </PackageReference>
     <PackageReference Include="NUnit">
       <Version>2.6.4</Version>
