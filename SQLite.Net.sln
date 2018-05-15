@@ -42,9 +42,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{5BD976
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SQLite.Net", "src\SQLite.Net\SQLite.Net.csproj", "{4971D437-0694-4297-A8CC-146CE08C3BD9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SQLite.Net", "src\SQLite.Net\SQLite.Net.csproj", "{4971D437-0694-4297-A8CC-146CE08C3BD9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SQLite.Net.Async", "src\SQLite.Net.Async\SQLite.Net.Async.csproj", "{3AB34E91-8E1A-442F-8E66-2494B371A890}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SQLite.Net.Async", "src\SQLite.Net.Async\SQLite.Net.Async.csproj", "{3AB34E91-8E1A-442F-8E66-2494B371A890}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
