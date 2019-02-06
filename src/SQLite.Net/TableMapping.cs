@@ -110,6 +110,13 @@ namespace SQLite.Net
         {
             get { return _insertColumns ?? (_insertColumns = Columns.Where(c => !c.IsAutoInc).ToArray()); }
         }
+        
+        [PublicAPI]
+        public Column[] InsertColumnsWithPk
+        {
+            get { return _insertColumns ?? (_insertColumns = Columns.ToArray()); }
+        }
+
 
         [PublicAPI]
         public void SetAutoIncPK(object obj, long id)

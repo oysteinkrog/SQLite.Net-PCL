@@ -1513,9 +1513,33 @@ namespace SQLite.Net
                 }
             }
 
+            bool usePkValue = false;
+            if (map.PK != null && map.PK.IsAutoInc)
+            {
+                var prop = objType.GetRuntimeProperty(map.PK.PropertyName);
+                if (prop != null)
+                {
+                    var val = prop.GetValue(obj);
+                    if (val != null && val.ToString() != "0")
+                    {
+                        usePkValue = true;
+                    }
+                }
+            }
+
             var replacing = string.Compare(extra, "OR REPLACE", StringComparison.OrdinalIgnoreCase) == 0;
 
-            var cols = replacing ? map.Columns : map.InsertColumns;
+            TableMapping.Column[] cols;
+
+            if (usePkValue)
+            {
+                cols = replacing ? map.Columns : map.InsertColumnsWithPk;
+            }
+            else
+            {
+                cols = replacing ? map.Columns : map.InsertColumns;
+            }
+            
             var vals = new object[cols.Length];
             for (var i = 0; i < vals.Length; i++)
             {
