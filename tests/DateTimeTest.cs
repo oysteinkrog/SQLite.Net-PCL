@@ -4,21 +4,6 @@ using NUnit.Framework;
 using SQLite.Net.Async;
 using SQLite.Net.Attributes;
 
-#if __WIN32__
-using SQLitePlatformTest = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
-#elif WINDOWS_PHONE
-using SQLitePlatformTest = SQLite.Net.Platform.WindowsPhone8.SQLitePlatformWP8;
-#elif __WINRT__
-using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
-#elif __IOS__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
-#elif __ANDROID__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
-#else
-using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
-#endif
-
-
 namespace SQLite.Net.Tests
 {
     [TestFixture]
@@ -30,7 +15,8 @@ namespace SQLite.Net.Tests
             public int Id { get; set; }
 
             public string Name { get; set; }
-            public DateTime ModifiedTime { get; set; }
+            public DateTime Time1 { get; set; }
+            public DateTime Time2 { get; set; }
         }
 
 
@@ -38,42 +24,39 @@ namespace SQLite.Net.Tests
         {
             await db.CreateTableAsync<TestObj>();
 
-            TestObj o, o2;
-
-            //
-            // Ticks
-            //
-            o = new TestObj
+            var org = new TestObj
             {
-                ModifiedTime = DateTime.UtcNow,
+                Time1 = DateTime.UtcNow,
+                Time2 = DateTime.Now,
             };
-            await db.InsertAsync(o);
-            o2 = await db.GetAsync<TestObj>(o.Id);
-            Assert.AreEqual(o.ModifiedTime, o2.ModifiedTime.ToUniversalTime());
+            await db.InsertAsync(org);
+            var fromDb = await db.GetAsync<TestObj>(org.Id);
+            Assert.AreEqual(fromDb.Time1.ToUniversalTime(), org.Time1.ToUniversalTime());
+            Assert.AreEqual(fromDb.Time2.ToUniversalTime(), org.Time2.ToUniversalTime());
 
-            var expectedTimeZone = storeDateTimeAsTicks ? DateTimeKind.Utc : DateTimeKind.Local;
-            Assert.AreEqual(o2.ModifiedTime.Kind, expectedTimeZone);
+            Assert.AreEqual(fromDb.Time1.ToLocalTime(), org.Time1.ToLocalTime());
+            Assert.AreEqual(fromDb.Time2.ToLocalTime(), org.Time2.ToLocalTime());
         }
 
         private void TestDateTime(TestDb db)
         {
             db.CreateTable<TestObj>();
 
-            TestObj o, o2;
-
             //
             // Ticks
             //
-            o = new TestObj
+            var org = new TestObj
             {
-                ModifiedTime = DateTime.UtcNow,
+                Time1 = DateTime.UtcNow,
+                Time2 = DateTime.Now,
             };
-            db.Insert(o);
-            o2 = db.Get<TestObj>(o.Id);
-            Assert.AreEqual(o.ModifiedTime, o2.ModifiedTime.ToUniversalTime());
+            db.Insert(org);
+            var fromDb = db.Get<TestObj>(org.Id);
+            Assert.AreEqual(fromDb.Time1.ToUniversalTime(), org.Time1.ToUniversalTime());
+            Assert.AreEqual(fromDb.Time2.ToUniversalTime(), org.Time2.ToUniversalTime());
 
-            var expectedTimeZone = db.StoreDateTimeAsTicks ? DateTimeKind.Utc : DateTimeKind.Local;
-            Assert.AreEqual(o2.ModifiedTime.Kind, expectedTimeZone);
+            Assert.AreEqual(fromDb.Time1.ToLocalTime(), org.Time1.ToLocalTime());
+            Assert.AreEqual(fromDb.Time2.ToLocalTime(), org.Time2.ToLocalTime());
         }
 
         [Test]
@@ -93,18 +76,16 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task AsyncAsString()
         {
-            var sqLiteConnectionPool = new SQLiteConnectionPool(new SQLitePlatformTest());
-            var sqLiteConnectionString = new SQLiteConnectionString(TestPath.GetTempFileName(), false);
-            var db = new SQLiteAsyncConnection(() => sqLiteConnectionPool.GetConnection(sqLiteConnectionString));
+            var sqLiteConnectionString = new SQLiteConnectionString(TestPath.CreateTemporaryDatabase(), false);
+            var db = new SQLiteAsyncConnection(() => new SQLiteConnectionWithLock(new SQLitePlatformTest(), sqLiteConnectionString));
             await TestAsyncDateTime(db, sqLiteConnectionString.StoreDateTimeAsTicks);
         }
 
         [Test]
         public async Task AsyncAsTicks()
         {
-            var sqLiteConnectionPool = new SQLiteConnectionPool(new SQLitePlatformTest());
-            var sqLiteConnectionString = new SQLiteConnectionString(TestPath.GetTempFileName(), true);
-            var db = new SQLiteAsyncConnection(() => sqLiteConnectionPool.GetConnection(sqLiteConnectionString));
+            var sqLiteConnectionString = new SQLiteConnectionString(TestPath.CreateTemporaryDatabase(), true);
+            var db = new SQLiteAsyncConnection(() => new SQLiteConnectionWithLock(new SQLitePlatformTest(), sqLiteConnectionString));
             await TestAsyncDateTime(db, sqLiteConnectionString.StoreDateTimeAsTicks);
         }
     }

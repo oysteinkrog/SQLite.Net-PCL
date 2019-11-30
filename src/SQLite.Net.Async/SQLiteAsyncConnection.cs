@@ -142,12 +142,18 @@ namespace SQLite.Net.Async
         public Task<int> DropTableAsync<T>(CancellationToken cancellationToken = default (CancellationToken))
             where T : class
         {
+            return DropTableAsync(typeof (T), cancellationToken);
+        }
+
+        [PublicAPI]
+        public Task<int> DropTableAsync(Type t, CancellationToken cancellationToken = default (CancellationToken))
+        {
             return Task.Factory.StartNew(() =>
             {
                 var conn = GetConnection();
                 using (conn.Lock())
                 {
-                    return conn.DropTable<T>();
+                    return conn.DropTable(t);
                 }
             }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
@@ -182,6 +188,32 @@ namespace SQLite.Net.Async
                 using (conn.Lock())
                 {
                     return conn.Update(item);
+                }
+            }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
+        }
+        
+        [PublicAPI]
+        public Task<int> InsertOrIgnoreAsync (object item)
+        {
+            return Task.Factory.StartNew (() => {
+                SQLiteConnectionWithLock conn = GetConnection ();
+                using (conn.Lock ()) {
+                    return conn.InsertOrIgnore (item);
+                }
+            });
+        }
+
+        [PublicAPI]
+        public Task<int> InsertOrIgnoreAllAsync (IEnumerable objects, CancellationToken cancellationToken = default (CancellationToken))
+        {
+            if (objects == null) {
+                throw new ArgumentNullException ("objects");
+            }
+
+            return Task.Factory.StartNew (() => {
+                SQLiteConnectionWithLock conn = GetConnection ();
+                using (conn.Lock ()) {
+                    return conn.InsertOrIgnoreAll (objects);
                 }
             }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
@@ -223,12 +255,18 @@ namespace SQLite.Net.Async
         [PublicAPI]
         public Task<int> DeleteAllAsync<T>(CancellationToken cancellationToken = default (CancellationToken))
         {
+            return DeleteAllAsync(typeof(T), cancellationToken);
+        }
+
+        [PublicAPI]
+        public Task<int> DeleteAllAsync(Type t, CancellationToken cancellationToken = default (CancellationToken))
+        {
             return Task.Factory.StartNew(() =>
             {
                 var conn = GetConnection();
                 using (conn.Lock())
                 {
-                    return conn.DeleteAll<T>();
+                    return conn.DeleteAll(t);
                 }
             }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
@@ -510,6 +548,36 @@ namespace SQLite.Net.Async
         }
 
         [PublicAPI]
+        public Task ExecuteNonQueryAsync([NotNull] string sql, [NotNull] params object[] args)
+        {
+            return ExecuteNonQueryAsync(CancellationToken.None, sql, args);
+        }
+
+        [PublicAPI]
+        public Task ExecuteNonQueryAsync(CancellationToken cancellationToken, [NotNull] string sql, [NotNull] params object[] args)
+        {
+            if (sql == null)
+            {
+                throw new ArgumentNullException("sql");
+            }
+            if (args == null)
+            {
+                throw new ArgumentNullException("args");
+            }
+            return Task.Factory.StartNew(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var conn = GetConnection();
+                using (conn.Lock())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var command = conn.CreateCommand(sql, args);
+                    command.ExecuteNonQuery();
+                }
+            }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
+        }
+
+        [PublicAPI]
         public Task<List<T>> QueryAsync<T>([NotNull] string sql, [NotNull] params object[] args)
             where T : class
         {
@@ -538,6 +606,17 @@ namespace SQLite.Net.Async
                     return conn.Query<T>(sql, args);
                 }
             }, cancellationToken, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
+        }
+
+        [PublicAPI]
+        public Task<TableMapping> GetMappingAsync<T> ()
+        {
+            return Task.Factory.StartNew (() => {
+                SQLiteConnectionWithLock conn = GetConnection ();
+                using (conn.Lock ()) {
+                    return conn.GetMapping (typeof(T));
+                }
+            }, CancellationToken.None, _taskCreationOptions, _taskScheduler ?? TaskScheduler.Default);
         }
     }
 }

@@ -2,20 +2,6 @@
 using NUnit.Framework;
 using SQLite.Net.Attributes;
 
-#if __WIN32__
-using SQLitePlatformTest = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
-#elif WINDOWS_PHONE
-using SQLitePlatformTest = SQLite.Net.Platform.WindowsPhone8.SQLitePlatformWP8;
-#elif __WINRT__
-using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
-#elif __IOS__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
-#elif __ANDROID__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
-#else
-using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
-#endif
-
 namespace SQLite.Net.Tests
 {
     [TestFixture]
@@ -92,7 +78,7 @@ namespace SQLite.Net.Tests
                 } //Null should be supported
             };
 
-            var database = new SQLiteConnection(_sqlite3Platform, TestPath.GetTempFileName());
+            var database = new SQLiteConnection(_sqlite3Platform, TestPath.CreateTemporaryDatabase());
             database.CreateTable<ByteArrayClass>();
 
             //Insert all of the ByteArrayClass
@@ -127,7 +113,7 @@ namespace SQLite.Net.Tests
                 new ByteArrayClass() { bytes = null } //Null should be supported
             };
 
-            var database = new SQLiteConnection(_sqlite3Platform, TestPath.GetTempFileName());
+            var database = new SQLiteConnection(_sqlite3Platform, TestPath.CreateTemporaryDatabase());
             database.CreateTable<ByteArrayClass>();
 
             byte[] criterion = new byte[] { 1, 0, 1 };
@@ -164,7 +150,7 @@ namespace SQLite.Net.Tests
                 new ByteArrayClass() { bytes = null } //Null should be supported
             };
 
-            var database = new SQLiteConnection(_sqlite3Platform, TestPath.GetTempFileName());
+            var database = new SQLiteConnection(_sqlite3Platform, TestPath.CreateTemporaryDatabase());
             database.CreateTable<ByteArrayClass>();
 
             byte[] criterion = null;
@@ -203,7 +189,7 @@ namespace SQLite.Net.Tests
                 bytes = bytes
             };
 
-            var database = new SQLiteConnection(_sqlite3Platform, TestPath.GetTempFileName());
+            var database = new SQLiteConnection(_sqlite3Platform, TestPath.CreateTemporaryDatabase());
             database.CreateTable<ByteArrayClass>();
 
             //Insert the ByteArrayClass

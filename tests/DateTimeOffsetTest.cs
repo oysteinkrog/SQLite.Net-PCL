@@ -3,21 +3,6 @@ using SQLite.Net.Async;
 using SQLite.Net.Attributes;
 using NUnit.Framework;
 
-#if __WIN32__
-using SQLitePlatformTest = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
-#elif WINDOWS_PHONE
-using SQLitePlatformTest = SQLite.Net.Platform.WindowsPhone8.SQLitePlatformWP8;
-#elif __WINRT__
-using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
-#elif __IOS__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
-#elif __ANDROID__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
-#else
-using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
-#endif
-
-
 namespace SQLite.Net.Tests
 {
     [TestFixture]
@@ -42,9 +27,8 @@ namespace SQLite.Net.Tests
         [Test]
         public void AsyncAsTicks ()
         {
-            var sqLiteConnectionPool = new SQLiteConnectionPool(new SQLitePlatformTest());
-            var sqLiteConnectionString = new SQLiteConnectionString(TestPath.GetTempFileName(), false);
-            var db = new SQLiteAsyncConnection(() => sqLiteConnectionPool.GetConnection(sqLiteConnectionString));
+            var sqLiteConnectionString = new SQLiteConnectionString(TestPath.CreateTemporaryDatabase(), false);
+            var db = new SQLiteAsyncConnection(() => new SQLiteConnectionWithLock(new SQLitePlatformTest(), sqLiteConnectionString));
             TestAsyncDateTimeOffset (db);
         }
 

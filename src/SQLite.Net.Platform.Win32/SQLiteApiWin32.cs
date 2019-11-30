@@ -6,6 +6,12 @@ namespace SQLite.Net.Platform.Win32
 {
     public class SQLiteApiWin32 : ISQLiteApiExt
     {
+        public SQLiteApiWin32(string nativeInteropSearchPath = null)
+        {
+            if (nativeInteropSearchPath  != null)
+                SQLiteApiWin32InternalConfiguration.NativeInteropSearchPath = nativeInteropSearchPath;
+        }
+
         public Result Open(byte[] filename, out IDbHandle db, int flags, IntPtr zvfs)
         {
             IntPtr dbPtr;
@@ -24,6 +30,11 @@ namespace SQLite.Net.Platform.Win32
         {
             return SQLiteApiWin32Internal.sqlite3_libversion_number();
         }
+        
+        public string SourceID()
+        {
+			return Marshal.PtrToStringAnsi(SQLiteApiWin32Internal.sqlite3_sourceid());            
+        }                
 
         public Result EnableLoadExtension(IDbHandle db, int onoff)
         {
@@ -68,7 +79,7 @@ namespace SQLite.Net.Platform.Win32
         {
             var internalDbHandle = (DbHandle) db;
             IntPtr stmt;
-            Result r = SQLiteApiWin32Internal.sqlite3_prepare_v2(internalDbHandle.DbPtr, query, query.Length, out stmt, IntPtr.Zero);
+            Result r = SQLiteApiWin32Internal.sqlite3_prepare16_v2(internalDbHandle.DbPtr, query, -1, out stmt, IntPtr.Zero);
             if (r != Result.OK)
             {
                 throw SQLiteException.New(r, Errmsg16(internalDbHandle));

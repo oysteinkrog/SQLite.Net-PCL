@@ -2,21 +2,6 @@
 using NUnit.Framework;
 using SQLite.Net.Attributes;
 
-#if __WIN32__
-using SQLitePlatformTest = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
-#elif WINDOWS_PHONE
-using SQLitePlatformTest = SQLite.Net.Platform.WindowsPhone8.SQLitePlatformWP8;
-#elif __WINRT__
-using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
-#elif __IOS__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
-#elif __ANDROID__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
-#else
-using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
-#endif
-
-
 namespace SQLite.Net.Tests
 {
     [TestFixture]
@@ -85,7 +70,7 @@ namespace SQLite.Net.Tests
         [Test]
         public void NullableScalarInt()
         {
-            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.GetTempFileName());
+            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase());
             db.CreateTable<NullableIntClass>();
 
             var withNull = new NullableIntClass
@@ -136,7 +121,7 @@ namespace SQLite.Net.Tests
         [Description("Create a table with a nullable int column then insert and select against it")]
         public void NullableFloat()
         {
-            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.GetTempFileName());
+            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase());
             db.CreateTable<NullableFloatClass>();
 
             var withNull = new NullableFloatClass
@@ -175,7 +160,7 @@ namespace SQLite.Net.Tests
         [Description("Create a table with a nullable int column then insert and select against it")]
         public void NullableInt()
         {
-            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.GetTempFileName());
+            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase());
             db.CreateTable<NullableIntClass>();
 
             var withNull = new NullableIntClass
@@ -213,7 +198,7 @@ namespace SQLite.Net.Tests
         [Test]
         public void NullableString()
         {
-            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.GetTempFileName());
+            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase());
             db.CreateTable<StringClass>();
 
             var withNull = new StringClass
@@ -245,7 +230,7 @@ namespace SQLite.Net.Tests
         [Test]
         public void StringWhereNotNull()
         {
-            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.GetTempFileName());
+            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase());
             db.CreateTable<StringClass>();
 
             var withNull = new StringClass
@@ -275,7 +260,7 @@ namespace SQLite.Net.Tests
         [Test]
         public void StringWhereNull()
         {
-            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.GetTempFileName());
+            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase());
             db.CreateTable<StringClass>();
 
             var withNull = new StringClass
@@ -304,7 +289,7 @@ namespace SQLite.Net.Tests
         [Test]
         public void WhereNotNull()
         {
-            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.GetTempFileName());
+            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase());
             db.CreateTable<NullableIntClass>();
 
             var withNull = new NullableIntClass
@@ -342,7 +327,7 @@ namespace SQLite.Net.Tests
         [Test]
         public void WhereNull()
         {
-            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.GetTempFileName());
+            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase());
             db.CreateTable<NullableIntClass>();
 
             var withNull = new NullableIntClass

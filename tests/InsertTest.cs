@@ -5,21 +5,6 @@ using System.Linq;
 using NUnit.Framework;
 using SQLite.Net.Attributes;
 
-#if __WIN32__
-using SQLitePlatformTest = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
-#elif WINDOWS_PHONE
-using SQLitePlatformTest = SQLite.Net.Platform.WindowsPhone8.SQLitePlatformWP8;
-#elif __WINRT__
-using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
-#elif __IOS__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
-#elif __ANDROID__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
-#else
-using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
-#endif
-
-
 namespace SQLite.Net.Tests
 {
     [TestFixture]
@@ -28,7 +13,7 @@ namespace SQLite.Net.Tests
         [SetUp]
         public void Setup()
         {
-            _db = new TestDb(TestPath.GetTempFileName());
+            _db = new TestDb(TestPath.CreateTemporaryDatabase());
         }
 
         [TearDown]
@@ -238,6 +223,31 @@ namespace SQLite.Net.Tests
             List<TestObj> r = (from x in _db.Table<TestObj>() orderby x.Id select x).ToList();
             Assert.AreEqual(20, r.Count);
             Assert.AreEqual("Foo", r[4].Text);
+        }
+
+        [Test]
+        public void InsertOrIgnore()
+        {
+            _db.TraceListener = DebugTraceListener.Instance;
+            _db.InsertOrIgnoreAll(from i in Enumerable.Range(1, 20)
+                select new TestObj2
+                {
+                    Id = i,
+                    Text = "#" + i
+                });
+
+            Assert.AreEqual(20, _db.Table<TestObj2>().Count());
+
+            var t = new TestObj2
+            {
+                Id = 5,
+                Text = "Foo",
+            };
+            _db.InsertOrIgnore(t);
+
+            List<TestObj2> r = (from x in _db.Table<TestObj2>() orderby x.Id select x).ToList();
+            Assert.AreEqual(20, r.Count);
+            Assert.AreEqual("#5", r[4].Text);
         }
 
         [Test]

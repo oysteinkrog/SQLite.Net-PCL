@@ -14,6 +14,8 @@ using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
 using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
 #elif __ANDROID__
 using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
+#elif __OSX__
+using SQLitePlatformTest = SQLite.Net.Platform.OSX.SQLitePlatformOSX;
 #else
 using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
 #endif
@@ -49,9 +51,8 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestTimeSpan()
         {
-            var sqLiteConnectionPool = new SQLiteConnectionPool(new SQLitePlatformTest());
-            var sqLiteConnectionString = new SQLiteConnectionString(TestPath.GetTempFileName(), true);
-            var db = new SQLiteAsyncConnection(() => sqLiteConnectionPool.GetConnection(sqLiteConnectionString));
+            var sqLiteConnectionString = new SQLiteConnectionString(TestPath.CreateTemporaryDatabase(), true);
+            var db = new SQLiteAsyncConnection(() => new SQLiteConnectionWithLock(new SQLitePlatformTest(), sqLiteConnectionString));
             await TestAsyncDateTime(db);
         }
     }

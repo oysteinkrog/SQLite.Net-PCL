@@ -6,20 +6,6 @@ using NUnit.Framework;
 using SQLite.Net.Attributes;
 using SQLite.Net.Interop;
 
-#if __WIN32__
-using SQLitePlatformTest = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
-#elif WINDOWS_PHONE
-using SQLitePlatformTest = SQLite.Net.Platform.WindowsPhone8.SQLitePlatformWP8;
-#elif __WINRT__
-using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
-#elif __IOS__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
-#elif __ANDROID__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
-#else
-using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
-#endif
-
 namespace SQLite.Net.Tests
 {
     [TestFixture]
@@ -27,7 +13,7 @@ namespace SQLite.Net.Tests
     {
         private class WithDefaultValue
         {
-
+			public const string CustomAttributeDefaultValue = "12345";
             public const int IntVal = 666;
             public static decimal DecimalVal = 666.666m;
             public static string StringVal = "Working String";
@@ -74,6 +60,90 @@ namespace SQLite.Net.Tests
 
         }
 
+		private class TestDefaultValueAttribute : Attribute
+		{
+			public string DefaultValue { get; private set; }
+
+			public TestDefaultValueAttribute(string defaultValue)
+			{
+				DefaultValue = defaultValue;
+			}
+		}
+
+		public class TestColumnInformationProvider : IColumnInformationProvider
+		{
+			public string GetColumnName(PropertyInfo p)
+			{
+				return p.Name;
+			}
+
+			public bool IsIgnored(PropertyInfo p)
+			{
+				return false;
+			}
+
+			public IEnumerable<IndexedAttribute> GetIndices(MemberInfo p)
+			{
+				return p.GetCustomAttributes<IndexedAttribute>();
+			}
+
+			public bool IsPK(MemberInfo m)
+			{
+				return m.GetCustomAttributes<PrimaryKeyAttribute>().Any();
+			}
+			public string Collation(MemberInfo m)
+			{
+				return string.Empty;
+			}
+			public bool IsAutoInc(MemberInfo m)
+			{
+				return false;
+			}
+			public int? MaxStringLength(PropertyInfo p)
+			{
+				return null;
+			}
+			public object GetDefaultValue(PropertyInfo p)
+			{
+				var defaultValueAttributes = p.GetCustomAttributes<TestDefaultValueAttribute> ();
+				if (!defaultValueAttributes.Any())
+				{
+					return null;
+				}
+
+				return defaultValueAttributes.First().DefaultValue;
+			}
+			public bool IsMarkedNotNull(MemberInfo p)
+			{
+				return false;
+			}
+		}
+
+		public abstract class TestObjBase<T>
+		{
+			[AutoIncrement, PrimaryKey]
+			public int Id { get; set; }
+
+			public T Data { get; set; }
+
+		}
+
+		public class TestObjIntWithDefaultValue : TestObjBase<int>
+		{
+			[TestDefaultValue("12345")]
+			public string SomeValue { get; set; }
+		}
+
+		public class TestDbWithCustomAttributes : SQLiteConnection
+		{
+			public TestDbWithCustomAttributes(String path)
+				: base(new SQLitePlatformTest(), path)
+			{
+				ColumnInformationProvider = new TestColumnInformationProvider();
+				CreateTable<TestObjIntWithDefaultValue>();
+			}
+		}
+
         [Test]
         public void TestColumnValues()
         {
@@ -110,5 +180,22 @@ namespace SQLite.Net.Tests
 
             }
         }
+
+		[Test]
+		public void TestCustomDefaultColumnValues()
+		{
+			using (var db = new TestDbWithCustomAttributes(TestPath.CreateTemporaryDatabase()))
+			{
+				string failed = string.Empty;
+				foreach (var col in db.GetMapping<TestObjIntWithDefaultValue>().Columns)
+				{
+					if (col.PropertyName == "SomeValue" && !col.DefaultValue.Equals(WithDefaultValue.CustomAttributeDefaultValue))
+						failed += " , SomeValue does not equal " + WithDefaultValue.CustomAttributeDefaultValue;
+				}
+
+				Assert.True(string.IsNullOrWhiteSpace(failed), failed);
+				db.ColumnInformationProvider = null;
+			}
+		}
     }
 }

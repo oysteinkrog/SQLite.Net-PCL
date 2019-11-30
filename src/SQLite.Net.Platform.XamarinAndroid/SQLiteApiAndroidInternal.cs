@@ -62,10 +62,10 @@ namespace SQLite.Net.Platform.XamarinAndroid
         [DllImport(DllName, EntryPoint = "sqlite3_close", CallingConvention = CallingConvention.Cdecl)]
         public static extern Result sqlite3_close(IntPtr db);
 
-        [DllImport("sqlite3", EntryPoint = "sqlite3_initialize", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(DllName, EntryPoint = "sqlite3_initialize", CallingConvention = CallingConvention.Cdecl)]
         public static extern Result sqlite3_initialize();
 
-        [DllImport("sqlite3", EntryPoint = "sqlite3_shutdown", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(DllName, EntryPoint = "sqlite3_shutdown", CallingConvention = CallingConvention.Cdecl)]
         public static extern Result sqlite3_shutdown();
 
         [DllImport(DllName, EntryPoint = "sqlite3_column_blob", CallingConvention = CallingConvention.Cdecl)]
@@ -128,9 +128,9 @@ namespace SQLite.Net.Platform.XamarinAndroid
         [DllImport(DllName, EntryPoint = "sqlite3_open_v2", CallingConvention = CallingConvention.Cdecl)]
         public static extern Result sqlite3_open_v2(byte[] filename, out IntPtr db, int flags, IntPtr zvfs);
 
-        [DllImport(DllName, EntryPoint = "sqlite3_prepare_v2", CallingConvention = CallingConvention.Cdecl)]
-        public static extern Result sqlite3_prepare_v2(IntPtr db,
-            [MarshalAs(UnmanagedType.LPStr)] string sql,
+        [DllImport(DllName, EntryPoint = "sqlite3_prepare16_v2", CallingConvention = CallingConvention.Cdecl)]
+        public static extern Result sqlite3_prepare16_v2(IntPtr db,
+            [MarshalAs(UnmanagedType.LPWStr)] string sql,
             int numBytes,
             out IntPtr stmt,
             IntPtr pzTail);
@@ -151,11 +151,14 @@ namespace SQLite.Net.Platform.XamarinAndroid
         [DllImport(DllName, EntryPoint = "sqlite3_column_name16", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr sqlite3_column_name16(IntPtr stmt, int index);
 
-        [DllImport("sqlite3", EntryPoint = "sqlite3_extended_errcode", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(DllName, EntryPoint = "sqlite3_extended_errcode", CallingConvention = CallingConvention.Cdecl)]
         public static extern ExtendedResult sqlite3_extended_errcode(IntPtr db);
 
-        [DllImport("sqlite3", EntryPoint = "sqlite3_libversion_number", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(DllName, EntryPoint = "sqlite3_libversion_number", CallingConvention = CallingConvention.Cdecl)]
         public static extern int sqlite3_libversion_number();
+
+        [DllImport(DllName, EntryPoint = "sqlite3_sourceid", CallingConvention = CallingConvention.Cdecl)]
+		public static extern IntPtr sqlite3_sourceid();
 
         #region Backup
         

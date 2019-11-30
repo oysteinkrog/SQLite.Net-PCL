@@ -5,22 +5,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using PCLStorage;
 using SQLite.Net.Async;
 using SQLite.Net.Attributes;
+using System.Diagnostics;
 
-#if __WIN32__
-using SQLitePlatformTest = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
-#elif WINDOWS_PHONE
-using SQLitePlatformTest = SQLite.Net.Platform.WindowsPhone8.SQLitePlatformWP8;
-#elif __WINRT__
-using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
-#elif __IOS__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
-#elif __ANDROID__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
-#else
-using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
-#endif
 
 namespace SQLite.Net.Tests
 {
@@ -42,6 +31,31 @@ namespace SQLite.Net.Tests
         public string Email { get; set; }
     }
 
+    public class Customer2
+    {
+        [PrimaryKey]
+        public int Id { get; set; }
+
+        [MaxLength(64)]
+        public string FirstName { get; set; }
+
+        [MaxLength(64)]
+        public string LastName { get; set; }
+
+        [MaxLength(64)]
+        public string Email { get; set; }
+    }
+
+    [Table("AGoodTableName")]
+    public class AFunnyTableName
+    {
+        [PrimaryKey]
+        public int Id { get; set; }
+
+        [Column("AGoodColumnName")]
+        public string AFunnyColumnName { get; set; }
+    }
+
     /// <summary>
     ///     Defines tests that exercise async behaviour.
     /// </summary>
@@ -51,42 +65,28 @@ namespace SQLite.Net.Tests
         [SetUp]
         public void SetUp()
         {
-            if (_sqliteConnectionPool != null)
-            {
-                _sqliteConnectionPool.Reset();
-            }
-            _path = Path.Combine(Path.GetTempPath(), DatabaseName);
-            // delete old db file
-            File.Delete(_path);
+            var databaseFile = TestPath.CreateTemporaryDatabase();
 
-            _connectionParameters = new SQLiteConnectionString(_path, false);
-            _sqliteConnectionPool = new SQLiteConnectionPool(_sqlite3Platform);
+            _connectionParameters = new SQLiteConnectionString(databaseFile, false);
         }
 
-        private const string DatabaseName = "async.db";
-
-        private SQLiteAsyncConnection GetConnection()
-        {
-            string path = null;
-            return GetConnection(ref path);
-        }
-
-        private string _path;
         private SQLiteConnectionString _connectionParameters;
         private SQLitePlatformTest _sqlite3Platform;
-        private SQLiteConnectionPool _sqliteConnectionPool;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
             _sqlite3Platform = new SQLitePlatformTest();
-            _sqliteConnectionPool = new SQLiteConnectionPool(_sqlite3Platform);
         }
 
-        private SQLiteAsyncConnection GetConnection(ref string path)
+        private SQLiteAsyncConnection GetAsyncConnection()
         {
-            path = _path;
-            return new SQLiteAsyncConnection(() => _sqliteConnectionPool.GetConnection(_connectionParameters));
+            return new SQLiteAsyncConnection(() => new SQLiteConnectionWithLock(_sqlite3Platform, _connectionParameters));
+        }
+
+        private SQLiteConnection GetSyncConnection()
+        {
+            return new SQLiteConnectionWithLock(_sqlite3Platform, _connectionParameters);
         }
 
         private Customer CreateCustomer()
@@ -110,8 +110,7 @@ namespace SQLite.Net.Tests
             customer.Email = Guid.NewGuid().ToString();
 
             // connect and insert...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.InsertAsync(customer);
 
@@ -129,7 +128,7 @@ namespace SQLite.Net.Tests
         public async Task FindAsyncWithExpressionNull()
         {
             // connect and insert...
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // get it back...
@@ -149,8 +148,7 @@ namespace SQLite.Net.Tests
             customer.Email = Guid.NewGuid().ToString();
 
             // connect and insert...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.InsertAsync(customer);
 
@@ -164,11 +162,24 @@ namespace SQLite.Net.Tests
             Assert.AreEqual(customer.Id, loaded.Id);
         }
 
+
         [Test]
         public async Task StressAsync()
         {
-            string path = null;
-            SQLiteAsyncConnection globalConn = GetConnection(ref path);
+            const int defaultBusyTimeout = 100;
+
+            SQLiteAsyncConnection globalConn = GetAsyncConnection();
+
+            // see http://stackoverflow.com/questions/12004426/sqlite-returns-sqlite-busy-in-wal-mode
+            var journalMode = await globalConn.ExecuteScalarAsync<string>("PRAGMA journal_mode = wal"); // = wal");
+            Debug.WriteLine("journal_mode: " + journalMode);
+            //var synchronous = await globalConn.ExecuteScalarAsync<string>("PRAGMA synchronous");        // 2 = FULL
+            //Debug.WriteLine("synchronous: " + synchronous);
+            //var pageSize = await globalConn.ExecuteScalarAsync<string>("PRAGMA page_size");             // 1024 default
+            //Debug.WriteLine("page_size: " + pageSize);
+            var busyTimeout = await globalConn.ExecuteScalarAsync<string>(
+                string.Format("PRAGMA busy_timeout = {0}", defaultBusyTimeout));
+            Debug.WriteLine("busy_timeout: " + busyTimeout);
 
             await globalConn.CreateTableAsync<Customer>();
 
@@ -177,16 +188,30 @@ namespace SQLite.Net.Tests
             var tasks = new List<Task>();
             for (int i = 0; i < n; i++)
             {
-                tasks.Add(Task.Factory.StartNew(async delegate
+                int taskId = i;
+
+                tasks.Add(Task.Run(async () =>
                 {
+                    string taskStep = "";
+
                     try
                     {
-                        SQLiteAsyncConnection conn = GetConnection();
+                        taskStep = "CONNECT";
+                        SQLiteAsyncConnection conn = GetAsyncConnection();
+
+                        // each connection retains the global journal_mode but somehow resets busy_timeout to 100
+                        busyTimeout = await globalConn.ExecuteScalarAsync<string>(
+                            string.Format("PRAGMA busy_timeout = {0}", defaultBusyTimeout));
+//                        Debug.WriteLine("busy_timeout: " + busyTimeout);
+
                         var obj = new Customer
                         {
-                            FirstName = i.ToString(),
+                            FirstName = taskId.ToString(),
                         };
+
+                        taskStep = "INSERT";
                         await conn.InsertAsync(obj);
+
                         if (obj.Id == 0)
                         {
                             lock (errors)
@@ -194,6 +219,8 @@ namespace SQLite.Net.Tests
                                 errors.Add("Bad Id");
                             }
                         }
+
+                        taskStep = "SELECT";
                         var obj3 = await (from c in conn.Table<Customer>() where c.Id == obj.Id select c).ToListAsync();
                         Customer obj2 = obj3.FirstOrDefault();
                         if (obj2 == null)
@@ -203,28 +230,41 @@ namespace SQLite.Net.Tests
                                 errors.Add("Failed query");
                             }
                         }
+
+//                        Debug.WriteLine("task {0} with id {1} and name {2}", taskId, obj.Id, obj.FirstName);
                     }
                     catch (Exception ex)
                     {
                         lock (errors)
                         {
-                            errors.Add(ex.Message);
+                            errors.Add(string.Format("{0}: {1}", taskStep, ex.Message));
                         }
                     }
                 }));
             }
 
             await Task.WhenAll(tasks);
-            int count = await globalConn.Table<Customer>().CountAsync();
+            Assert.AreEqual(n, tasks.Where(t => t.IsCompleted).Count());
 
-            Assert.AreEqual(0, errors.Count);
-            Assert.AreEqual(n, count);
+            //int j = 0;
+            //foreach (var error in errors)
+            //{
+            //    Debug.WriteLine("{0} {1}", j++, error);
+            //}
+
+            Assert.AreEqual(0, errors.Count, "Error in task runs");
+
+            int count = await globalConn.Table<Customer>().CountAsync();
+            Assert.AreEqual(n, count, "Not enough items in table");
+
+            // TODO: get out of wal mode - currently fails with 'database is locked'
+//            journalMode = await globalConn.ExecuteScalarAsync<string>("PRAGMA journal_mode = delete");
         }
 
         [Test]
         public async Task TestAsyncGetWithExpression()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.ExecuteAsync("delete from customer");
 
@@ -245,7 +285,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableElementAtAsync()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.ExecuteAsync("delete from customer");
 
@@ -268,7 +308,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableOrderBy()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.ExecuteAsync("delete from customer");
 
@@ -289,7 +329,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableOrderByDescending()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.ExecuteAsync("delete from customer");
 
@@ -310,7 +350,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableThenBy()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.ExecuteAsync("delete from customer");
 
@@ -336,7 +376,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableThenByDescending()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.ExecuteAsync("delete from customer");
 
@@ -363,7 +403,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableQueryCountAsync()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.ExecuteAsync("delete from customer");
 
@@ -384,7 +424,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableQuerySkip()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.ExecuteAsync("delete from customer");
 
@@ -408,7 +448,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableQueryTake()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.ExecuteAsync("delete from customer");
 
@@ -432,7 +472,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableQueryToFirstAsyncFound()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // create...
@@ -450,7 +490,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableQueryToFirstAsyncMissing()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // create...
@@ -465,7 +505,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableQueryToFirstOrDefaultAsyncFound()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // create...
@@ -483,7 +523,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableQueryToFirstOrDefaultAsyncMissing()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // create...
@@ -501,7 +541,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableQueryToListAsync()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // create...
@@ -520,7 +560,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestAsyncTableQueryWhereOperation()
         {
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // create...
@@ -539,8 +579,7 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestCreateTableAsync()
         {
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
 
             // drop the customer table...
             await conn.ExecuteAsync("drop table if exists Customer");
@@ -549,7 +588,7 @@ namespace SQLite.Net.Tests
             await conn.CreateTableAsync<Customer>();
 
             // check...
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 // run it - if it's missing we'll get a failure...
                 check.Execute("select * from Customer");
@@ -563,8 +602,7 @@ namespace SQLite.Net.Tests
             Customer customer = CreateCustomer();
 
             // connect...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // run...
@@ -574,7 +612,7 @@ namespace SQLite.Net.Tests
             await conn.DeleteAsync(customer);
 
             // check...
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 // load it back - should be null...
                 List<Customer> loaded = check.Table<Customer>().Where(v => v.Id == customer.Id).ToList();
@@ -585,15 +623,14 @@ namespace SQLite.Net.Tests
         [Test]
         public async Task TestDropTableAsync()
         {
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // drop it...
             await conn.DropTableAsync<Customer>();
 
             // check...
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 // load it back and check - should be missing
                 SQLiteCommand command =
@@ -606,8 +643,7 @@ namespace SQLite.Net.Tests
         public async Task TestExecuteAsync()
         {
             // connect...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // do a manual insert...
@@ -616,7 +652,7 @@ namespace SQLite.Net.Tests
                 "foo", "bar", email);
 
             // check...
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 // load it back - should be null...
                 TableQuery<Customer> result = check.Table<Customer>().Where(v => v.Email == email);
@@ -628,7 +664,7 @@ namespace SQLite.Net.Tests
         public async Task TestExecuteScalar()
         {
             // connect...
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // check...
@@ -640,7 +676,7 @@ namespace SQLite.Net.Tests
         public async Task TestFindAsyncItemMissing()
         {
             // connect and insert...
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // now get one that doesn't exist...
@@ -657,8 +693,7 @@ namespace SQLite.Net.Tests
             Customer customer = CreateCustomer();
 
             // connect and insert...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.InsertAsync(customer);
 
@@ -688,15 +723,14 @@ namespace SQLite.Net.Tests
             }
 
             // connect...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // insert them all...
             await conn.InsertAllAsync(customers);
 
             // check...
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 for (int index = 0; index < customers.Count; index++)
                 {
@@ -714,8 +748,7 @@ namespace SQLite.Net.Tests
             Customer customer = CreateCustomer();
 
             // connect...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // run...
@@ -725,7 +758,7 @@ namespace SQLite.Net.Tests
             Assert.AreNotEqual(0, customer.Id);
 
             // check...
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 // load it back...
                 var loaded = check.Get<Customer>(customer.Id);
@@ -749,8 +782,7 @@ namespace SQLite.Net.Tests
             }
 
             // connect...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // insert them all...
@@ -778,7 +810,7 @@ namespace SQLite.Net.Tests
             await conn.InsertOrReplaceAllAsync(customers);
 
             // check...
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 for (int index = 0; index < customers.Count; index++)
                 {
@@ -803,15 +835,14 @@ namespace SQLite.Net.Tests
             customer.Email = Guid.NewGuid().ToString();
 
             // connect...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // run...
             await conn.InsertOrReplaceAsync(customer);
 
             // check...
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 // load it back...
                 var loaded = check.Get<Customer>(customer.Id);
@@ -831,7 +862,7 @@ namespace SQLite.Net.Tests
 
             // check again...
             // check...
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 // load it back...
                 var loaded = check.Get<Customer>(customer.Id);
@@ -843,10 +874,114 @@ namespace SQLite.Net.Tests
         }
 
         [Test]
+        public async Task TestInsertOrIgnoreAllAsync ()
+        {
+            const string originalFirstName = "foo";
+            const string originalLastName = "bar";
+            
+            // create a bunch of customers...
+            var customers = new List<Customer2> ();
+            for (int index = 0; index < 100; index++) {
+                var customer = new Customer2 ();
+                customer.Id = index;
+                customer.FirstName = originalFirstName;
+                customer.LastName = originalLastName;
+                customer.Email = Guid.NewGuid ().ToString ();
+                customers.Add (customer);
+            }
+
+            // connect...
+            SQLiteAsyncConnection conn = GetAsyncConnection ();
+            await conn.CreateTableAsync<Customer2> ();
+
+            // insert them all...
+            await conn.InsertOrIgnoreAllAsync (customers);
+
+            // change the existing ones...
+            foreach (var customer in customers) {
+                customer.FirstName = "baz";
+                customer.LastName = "biz";
+            }
+
+            // ... and add a few more
+            for (int index = 100; index < 200; index++) {
+                var customer = new Customer2 ();
+                customer.Id = index;
+                customer.FirstName = originalFirstName;
+                customer.LastName = originalLastName;
+                customer.Email = Guid.NewGuid ().ToString ();
+                customers.Add (customer);
+            }
+
+            // insert them all, ignoring the already existing ones
+            await conn.InsertOrIgnoreAllAsync (customers);
+
+            // check...
+            using (var check = GetSyncConnection()) {
+                for (int index = 0; index < customers.Count; index++) {
+                    // load it back and check...
+                    var loaded = check.Get<Customer2> (customers [index].Id);
+                    Assert.AreEqual (loaded.FirstName, originalFirstName);
+                    Assert.AreEqual (loaded.LastName, originalLastName);
+                    Assert.AreEqual (loaded.Email, customers [index].Email);
+                }
+            }
+
+        }
+
+        [Test]
+        public async Task TestInsertOrIgnoreAsync ()
+        {
+            const string originalFirstName = "foo";
+            const string originalLastName = "bar";
+
+            // create...
+            var customer = new Customer2 ();
+            customer.Id = 42;
+            customer.FirstName = originalFirstName;
+            customer.LastName = originalLastName;
+            customer.Email = Guid.NewGuid ().ToString ();
+
+            // connect...
+            SQLiteAsyncConnection conn = GetAsyncConnection ();
+            await conn.CreateTableAsync<Customer2> ();
+
+            // run...
+            await conn.InsertOrIgnoreAsync (customer);
+
+            // check...
+            using (var check = GetSyncConnection()) {
+                // load it back...
+                var loaded = check.Get<Customer2> (customer.Id);
+                Assert.AreEqual (loaded.Id, customer.Id);
+                Assert.AreEqual (loaded.FirstName, originalFirstName);
+                Assert.AreEqual (loaded.LastName, originalLastName);
+                Assert.AreEqual (loaded.Email, customer.Email);
+            }
+
+            // change ...
+            customer.FirstName = "baz";
+            customer.LastName = "biz";
+
+            // insert or ignore...
+            await conn.InsertOrIgnoreAsync (customer);
+
+            // check...
+            using (var check = GetSyncConnection()) {
+                // load it back...
+                var loaded = check.Get<Customer2> (customer.Id);
+                Assert.AreEqual (loaded.Id, customer.Id);
+                Assert.AreEqual (loaded.FirstName, originalFirstName);
+                Assert.AreEqual (loaded.LastName, originalLastName);
+                Assert.AreEqual (loaded.Email, customer.Email);
+            }
+        }
+
+        [Test]
         public async Task TestQueryAsync()
         {
             // connect...
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // insert some...
@@ -874,8 +1009,7 @@ namespace SQLite.Net.Tests
         public async Task TestRunInTransactionAsync()
         {
             // connect...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             bool transactionCompleted = false;
 
@@ -898,7 +1032,7 @@ namespace SQLite.Net.Tests
 
             // check...
             Assert.IsTrue(transactionCompleted);
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 // load it back and check - should be deleted...
                 List<Customer> loaded = check.Table<Customer>().Where(v => v.Id == customer.Id).ToList();
@@ -910,7 +1044,7 @@ namespace SQLite.Net.Tests
         public async Task TestTableAsync()
         {
             // connect...
-            SQLiteAsyncConnection conn = GetConnection();
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
             await conn.ExecuteAsync("delete from customer");
 
@@ -950,8 +1084,7 @@ namespace SQLite.Net.Tests
             Customer customer = CreateCustomer();
 
             // connect...
-            string path = null;
-            SQLiteAsyncConnection conn = GetConnection(ref path);
+            SQLiteAsyncConnection conn = GetAsyncConnection();
             await conn.CreateTableAsync<Customer>();
 
             // run...
@@ -965,12 +1098,28 @@ namespace SQLite.Net.Tests
             await conn.UpdateAsync(customer);
 
             // check...
-            using (var check = new SQLiteConnection(_sqlite3Platform, path))
+            using (var check = GetSyncConnection())
             {
                 // load it back - should be changed...
                 var loaded = check.Get<Customer>(customer.Id);
                 Assert.AreEqual(newEmail, loaded.Email);
             }
+        }
+
+        [Test]
+        public async Task TestGetMappingAsync()
+        {
+            // connect...
+            SQLiteAsyncConnection conn = GetAsyncConnection();
+            await conn.CreateTableAsync<AFunnyTableName>();
+
+            // get mapping...
+            TableMapping mapping = await conn.GetMappingAsync<AFunnyTableName>();
+
+            // check...
+            Assert.AreEqual("AGoodTableName", mapping.TableName);
+            Assert.AreEqual("Id", mapping.Columns[0].Name);
+            Assert.AreEqual("AGoodColumnName", mapping.Columns[1].Name);
         }
     }
 }

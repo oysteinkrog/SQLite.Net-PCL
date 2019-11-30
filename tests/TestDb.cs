@@ -1,20 +1,8 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
+using PCLStorage;
 using SQLite.Net.Attributes;
-
-#if __WIN32__
-using SQLitePlatformTest = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
-#elif WINDOWS_PHONE
-using SQLitePlatformTest = SQLite.Net.Platform.WindowsPhone8.SQLitePlatformWP8;
-#elif __WINRT__
-using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
-#elif __IOS__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
-#elif __ANDROID__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
-#else
-using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
-#endif
 
 namespace SQLite.Net.Tests
 {
@@ -120,7 +108,7 @@ namespace SQLite.Net.Tests
     {
         public TestDb(bool storeDateTimeAsTicks = true, IContractResolver resolver = null)
             : base(
-                new SQLitePlatformTest(), TestPath.GetTempFileName(), storeDateTimeAsTicks, null,
+                new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase(), storeDateTimeAsTicks, null,
                 extraTypeMappings: null,
                 resolver: resolver)
 		{
@@ -130,9 +118,21 @@ namespace SQLite.Net.Tests
 
     public class TestPath
     {
-        public static string GetTempFileName()
+        public static string CreateTemporaryDatabase(string fileName = null)
         {
-            return Path.GetTempFileName();
+            var desiredName = fileName ?? CreateDefaultTempFilename() + ".db";
+            var localStorage = FileSystem.Current.LocalStorage;
+            if (localStorage.CheckExistsAsync("temp").Result != ExistenceCheckResult.FolderExists)
+            {
+                localStorage.CreateFolderAsync("temp", CreationCollisionOption.OpenIfExists).Wait();
+            }
+            IFolder tempFolder = localStorage.GetFolderAsync("temp").Result;
+            return tempFolder.CreateFileAsync(desiredName, CreationCollisionOption.FailIfExists).Result.Path;
+        }
+
+        public static Guid CreateDefaultTempFilename()
+        {
+            return Guid.NewGuid();
         }
     }
 }

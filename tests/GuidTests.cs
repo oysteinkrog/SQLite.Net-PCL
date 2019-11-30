@@ -5,21 +5,6 @@ using NUnit.Framework;
 using SQLite.Net.Attributes;
 using SQLite.Net.Interop;
 
-#if __WIN32__
-using SQLitePlatformTest = SQLite.Net.Platform.Win32.SQLitePlatformWin32;
-#elif WINDOWS_PHONE
-using SQLitePlatformTest = SQLite.Net.Platform.WindowsPhone8.SQLitePlatformWP8;
-#elif __WINRT__
-using SQLitePlatformTest = SQLite.Net.Platform.WinRT.SQLitePlatformWinRT;
-#elif __IOS__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinIOS.SQLitePlatformIOS;
-#elif __ANDROID__
-using SQLitePlatformTest = SQLite.Net.Platform.XamarinAndroid.SQLitePlatformAndroid;
-#else
-using SQLitePlatformTest = SQLite.Net.Platform.Generic.SQLitePlatformGeneric;
-#endif
-
-
 namespace SQLite.Net.Tests
 {
     [TestFixture]
@@ -50,7 +35,7 @@ namespace SQLite.Net.Tests
         [Test]
         public void AutoGuid_EmptyGuid()
         {
-            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.GetTempFileName());
+            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase());
             db.CreateTable<TestObj>(CreateFlags.AutoIncPK);
 
             var guid1 = new Guid("36473164-C9E4-4CDF-B266-A0B287C85623");
@@ -80,7 +65,7 @@ namespace SQLite.Net.Tests
         [Test]
         public void AutoGuid_HasGuid()
         {
-            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.GetTempFileName());
+            var db = new SQLiteConnection(new SQLitePlatformTest(), TestPath.CreateTemporaryDatabase());
             db.CreateTable<TestObj>(CreateFlags.AutoIncPK);
 
             var guid1 = new Guid("36473164-C9E4-4CDF-B266-A0B287C85623");
@@ -108,7 +93,7 @@ namespace SQLite.Net.Tests
         [Test]
         public void ShouldPersistAndReadGuid()
         {
-            var db = new TestDb(TestPath.GetTempFileName());
+            var db = new TestDb(TestPath.CreateTemporaryDatabase());
 
             var obj1 = new TestObj
             {
